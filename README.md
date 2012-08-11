@@ -3,6 +3,12 @@ PicUsbFirmware
 
 USB Firmware for PICs
 
+This project is a spin-off of the [XFD](https://github.com/holgero/XFD)
+(eXtreme Feedback Device) project. This project focuses on the firmware
+for the PICs, if you are looking for schematics, host programs etc. you may
+want to have a look at the XFD project. Also this project is licensed under
+a less restrictive license (the Apache License 2.0).
+
 ## Building
 
 To build: Run make in the top level directory like this:
