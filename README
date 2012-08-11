@@ -1,0 +1,52 @@
+h1. eXtreme Fedback Device
+
+The aim is to bring the feedback from the continous integration build
+faster to the developer.
+For this a microcontroller (PIC18Fxx5x) controls some indicators (typically 
+three LEDs mimicing a traffic light). The host runs a java program that
+polls the CI build server and tells the microcontroller via usb which
+LED(s) to light.
+
+The device has its own official USB address (0x1d50:0x6039), thanks
+to Openmoko Inc. (see
+http://wiki.openmoko.org/wiki/USB_Product_IDs#USB_Vendor_and_Product_IDs ).
+
+h2. Building
+
+To build: Run make in the top level directory as this:
+$ make
+
+Needs to compile: make, gcc++, javac, maven, gputils
+Needs at runtime: java, usblib (on linux), HID.DLL (on windows).
+
+You will find the firmware under device/XFD.hex, flash your PIC with it.
+
+The program for your host will be a jar file under buildmonitor/target
+named buildmonitor-*-jar-with-dependencies.jar. Start it with a command
+line like this:
+
+$ java -jar buildmonitor-*-jar-with-dependencies.jar http://jenkins.my.domain:8080/view/BuildViewToWatch
+
+Note: On Windows (before Windows 8) you need to install the WinUSB driver
+for generic USB devices once before you can use it. You can use Zadig
+(https://github.com/pbatard/libwdi/wiki/Zadig) for that purpose.
+
+
+h2. Contents
+
+Directories:
+device			firmware for the microcontroller
+host			C++ executable and some demo scripts, mainly used
+			to test the hardware and firmware
+java/usbleds		usb leds java driver	
+java/buildmonitor	main program with the build monitor
+hardware		device hardware
+
+See also the file CREDITS.
+
+Branches:
+master:		main branch, uses PIC18F13K50
+18f2550:	a secondary branch, based on PIC18F2550, mostly for reference
+		and for sentimental reasons (I started in this branch).
+hid		a different approach to access the device on windows:
+		it is declared as a HID and accessed with the HID.DLL
