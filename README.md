@@ -18,6 +18,8 @@ Example:
 This will run make in the subdirectories, which in turn runs gpasm to
 compile and link the assembler sources to a .hex file.
 
+There is a CI build of the firmware at travis-ci: http://travis-ci.org/holgero/PicUsbFirmware
+
 ## Directories
 
 18f13k50	Firmware for the PIC 18f13k50 (maybe works on the complete
