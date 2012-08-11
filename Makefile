@@ -17,17 +17,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-all: device host java
+all: checkVIDPID 18f13k50
 
-device:
-	$(MAKE) -C device clean all
+checkVIDPID:
+	@test "$(VID)" || ( echo "ERROR: missing VID"; exit 1 )
+	@test "$(PID)" || ( echo "ERROR: missing PID"; exit 1 )
+	@echo "Building with VID:PID=$(VID):$(PID)"
 
-host:
-	$(MAKE) -C host clean all
+18f13k50:
+	$(MAKE) -C 18f13k50 clean all
 
-java:
-	( cd java; \
-	  mkdir -p usbleds/src/main/resources; \
-	  mvn clean install )
+clean:
+	$(MAKE) -C 18f13k50 clean
 
-.PHONY: all device host java
+.PHONY: all clean checkVIDPID 18f13k50

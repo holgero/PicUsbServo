@@ -190,8 +190,8 @@ db	0x12, DEVICE			; bLength, bDescriptorType
 db	0x00, 0x02			; low(bcdUSB), high(bcdUSB): 2.00
 db	0xFF, 0x00			; bDeviceClass, bDeviceSubClass
 db	0x00, 0x08			; bDeviceProtocl, bMaxPacketSize
-db	0x50, 0x1d			; low(idVendor), high(idVendor)
-db	0x39, 0x60			; low(idProduct), high(idProduct)
+db	low(VID), high(VID)		; low(idVendor), high(idVendor)
+db	low(PID), high(PID)		; low(idProduct), high(idProduct)
 db	0x01, 0x00			; low(bcdDevice), high(bcdDevice)
 db	0x01, 0x02			; iManufacturer, iProduct
 db	0x00, NUM_CONFIGURATIONS	; iSerialNumber (none), bNumConfigurations
