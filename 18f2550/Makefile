@@ -1,7 +1,6 @@
 # eXtreme Feedback Device
 # USB connected device which switches some LEDs on and off
-# Top level Makefile, creates device firmware, C++ test program and
-# java main program.
+# Makefile, creates XFD.hex file from sources
 #
 # Copyright (C) 2012 Holger Oehm
 # This program is free software: you can redistribute it and/or modify
@@ -17,21 +16,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-all: checkVIDPID 18f13k50 18f2550
+OBJECTS=usb.o wait.o main.o
 
-checkVIDPID:
-	@test "$(VID)" || ( echo "ERROR: missing VID"; exit 1 )
-	@test "$(PID)" || ( echo "ERROR: missing PID"; exit 1 )
-	@echo "Building with VID:PID=$(VID):$(PID)"
+%.o : %.asm
+	gpasm -c -p p18f2550 -r dec -w 2 --define VID=0x$(VID) --define PID=0x$(PID) $<
 
-18f13k50:
-	$(MAKE) -C 18f13k50 clean all
+all: firmware.hex
 
-18f2550:
-	$(MAKE) -C 18f2550 clean all
+firmware.hex: $(OBJECTS)
+	gplink -o firmware.hex -a inhx32 -m $(OBJECTS)
 
 clean:
-	$(MAKE) -C 18f13k50 clean
-	$(MAKE) -C 18f2550 clean
+	rm -f *.o *.map *.lst *.cod *.hex
 
-.PHONY: all clean checkVIDPID 18f13k50 18f2550
+.PHONY: all clean
