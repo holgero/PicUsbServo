@@ -17,3 +17,10 @@ Example:
 
 This will run make in the subdirectories, which in turn runs gpasm to
 compile and link the assembler sources to a .hex file.
+
+## Directories
+
+18f13k50	Firmware for the PIC 18f13k50 (maybe works on the complete
+		PIC family 18f1xk50, maybe not)
+18f2550		Firmware for the PIC 18f2550 (maybe works on the complete
+		PIC family 18f[24][45]5x, maybe not)
