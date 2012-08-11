@@ -1,4 +1,4 @@
 language: c
-script: make
+script: make VID=0000 PID=0000
 before_install:
  - sudo apt-get install gputils

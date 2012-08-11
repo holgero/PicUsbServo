@@ -22,5 +22,20 @@ compile and link the assembler sources to a .hex file.
 
 18f13k50	Firmware for the PIC 18f13k50 (maybe works on the complete
 		PIC family 18f1xk50, maybe not)
+
 18f2550		Firmware for the PIC 18f2550 (maybe works on the complete
 		PIC family 18f[24][45]5x, maybe not)
+
+## License
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
