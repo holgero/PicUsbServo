@@ -17,6 +17,7 @@
 ;**************************************************************
 ; includes
 #include <p18f2550.inc>
+#include "descriptor.inc"
 
 ;**************************************************************
 ; exported subroutines
@@ -30,11 +31,17 @@
 ; exported variables
 	global	LED_states
 	global	USB_received
+;**************************************************************
+; imported subroutines
+;	descriptor.asm
+	extern	copyNextDescriptorByte
+	extern	getIndexedString
+	extern	getCompatibleIdFeature
+	extern	getDeviceDescriptor
+	extern	getConfigurationDescriptor
 
 ;**************************************************************
 ; local definitions
-NUM_CONFIGURATIONS	EQU	1
-NUM_INTERFACES		EQU	1
 ; usb states
 POWERED_STATE		EQU	0x00
 DEFAULT_STATE		EQU	0x01
@@ -68,13 +75,6 @@ USB_Buffer		EQU	( USBMEMORY + 0x0080 )
 ; offsets from the beginning of the Buffer Descriptor
 ADDRESSL		EQU	0x02
 ADDRESSH		EQU	0x03
-
-; descriptor types
-DEVICE			EQU	1
-CONFIGURATION		EQU	2
-STRING			EQU	3
-INTERFACE		EQU	4
-ENDPOINT		EQU	5
 
 ; offsets into the setup data record
 bmRequestType		EQU	0x00
@@ -119,10 +119,6 @@ RECIPIENT_DEVICE	EQU	0x00
 RECIPIENT_INTERFACE	EQU	0x01
 RECIPIENT_ENDPOINT	EQU	0x02
 
-; MS USB Extension Stuff
-I_EXTENSION_STRING	EQU	0xEE
-VENDOR_CODE		EQU	0x42
-
 ; request codes
 WAKEUP_REQUEST		EQU	0x01
 ;**************************************************************
@@ -130,14 +126,12 @@ WAKEUP_REQUEST		EQU	0x01
 usb_udata		UDATA
 USB_buffer_desc		RES	4
 USB_buffer_data		RES	8
-USB_error_flags		RES	1
 USB_curr_config		RES	1
 USB_device_status	RES	1
 USB_protocol		RES	1
 USB_idle_rate		RES	1
 USB_dev_req		RES	1
 USB_address_pending	RES	1
-USB_desc_ptr		RES	1
 USB_bytes_left		RES	1
 USB_loop_index		RES	1
 USB_packet_length	RES	1
@@ -149,111 +143,6 @@ LED_states		RES	5
 ;**************************************************************
 ; code section
 usb_code		CODE	0x00082a
-
-Descriptor
-	movlw		upper Descriptor_begin
-	movwf		TBLPTRU, ACCESS
-	movlw		high Descriptor_begin
-	movwf		TBLPTRH, ACCESS
-	movlw		low Descriptor_begin
-	banksel		USB_desc_ptr
-	addwf		USB_desc_ptr, W, BANKED
-	btfss		STATUS, C, ACCESS
-	goto		decriptorAddressCalculated
-	incfsz		TBLPTRH, F, ACCESS
-	goto		decriptorAddressCalculated
-	incf		TBLPTRU, F, ACCESS
-decriptorAddressCalculated
-	movwf		TBLPTRL, ACCESS
-	tblrd*
-	movf		TABLAT, W, ACCESS
-	return
-
-Descriptor_begin
-Device
-db	0x12, DEVICE			; bLength, bDescriptorType
-db	0x00, 0x02			; low(bcdUSB), high(bcdUSB): 2.00
-db	0xFF, 0x00			; bDeviceClass, bDeviceSubClass
-db	0x00, 0x08			; bDeviceProtocl, bMaxPacketSize
-db	low(VID), high(VID)		; low(idVendor), high(idVendor)
-db	low(PID), high(PID)		; low(idProduct), high(idProduct)
-db	0x01, 0x00			; low(bcdDevice), high(bcdDevice)
-db	0x01, 0x02			; iManufacturer, iProduct
-db	0x00, NUM_CONFIGURATIONS	; iSerialNumber (none), bNumConfigurations
-
-Configuration1
-db	0x09, CONFIGURATION		; bLength, bDescriptorType
-db	0x19, 0x00			; low(wTotalLength), high(wTotalLength)
-db	NUM_INTERFACES, 0x01		; bNumInterfaces, bConfigurationValue
-db	0x00, 0x80			; iConfiguration (none), bmAttributes
-db	0x32, 0x09			; bMaxPower (100 mA), interface1: blength
-db	INTERFACE, 0x00			; INTERFACE, 0x00
-db	0x00, 0x01			; bAlternateSetting, bNumEndpoints (excluding EP0)
-db	0xFF, 0x00			; bInterfaceClass (vendor specific), bInterfaceSubClass (no subclass)
-db	0x00, 0x00			; bInterfaceProtocol (none), iInterface (none)
-db	0x07, ENDPOINT			; EP0: bLength, bDescriptorType
-db	0x81, 0x03			; bEndpointAddress (EP1 IN), bmAttributes (Interrupt)
-db	0x08, 0x00			; low(wMaxPacketSize), high(wMaxPacketSize)
-db	0x0A				; bInterval (10 ms)
-
-CompatibleIdFeature                     ; MS extension
-db	0x28, 0x00			; low(descriptorLength), high(descriptorLength)
-db	0x00, 0x00			; more lenght bytes, set to 0
-db	0x00, 0x01			; bcd version ('1.0')
-db	0x04, 0x00			; Compatibility ID Descriptor index (0x0004)
-db	0x01, 0x00			; Number of sections (1), reserved
-db	0x00, 0x00
-db	0x00, 0x00
-db	0x00, 0x00			; 6 reserved bytes
-db	0x00, 0x01			; Interface Number (Interface #0), Reserved
-db	'W', 'I', 'N', 'U', 'S', 'B'	; "WINUSB"
-db	0x00, 0x00			; "\0\0"
-db	0x00, 0x00, 0x00, 0x00
-db	0x00, 0x00, 0x00, 0x00		; Sub-Compatible ID (unused)
-db	0x00, 0x00, 0x00, 0x00
-db	0x00, 0x00			; Reserved 
-
-String0
-db	String1-String0, STRING		; bLength, bDescriptorType
-db	0x09, 0x04			; wLANGID[0]=0x0409: English (US)
-String1
-db	String2-String1, STRING		; bLength, bDescriptorType
-db	'H', 0x00			; bString
-db	'o', 0x00
-db	'l', 0x00
-db	'g', 0x00
-db	'e', 0x00
-db	'r', 0x00
-db	' ', 0x00
-db	'O', 0x00
-db	'e', 0x00
-db	'h', 0x00
-db	'm', 0x00
-String2
-db	StringEE-String2, STRING	; bLength, bDescriptorType
-db	'X', 0x00			; bString
-db	'F', 0x00
-db	'D', 0x00
-db	'e', 0x00
-db	'v', 0x00
-db	'i', 0x00
-db	'c', 0x00
-db	'e', 0x00
-StringEE				; special string to enable ms extensions
-db	Descriptor_end-StringEE, STRING	; bLength, bDescriptorType=STRING
-db	'M', 0x00
-db	'S', 0x00
-db	'F', 0x00
-db	'T', 0x00
-db	'1', 0x00
-db	'0', 0x00
-db	'0', 0x00
-db	VENDOR_CODE, 0x00		; Vendor Code, padding
-Descriptor_end
-
-StringOffsetsTable
-db	String0 - Descriptor_begin, String1 - Descriptor_begin
-db	String2 - Descriptor_begin, StringEE - Descriptor_begin
 
 InitUSB
 	clrf	UIE, ACCESS		; mask all USB interrupts
@@ -502,9 +391,7 @@ vendorRequests
 ; we are to return a compatible id feature descriptor
 	movlw	GET_DESCRIPTOR
 	movwf	USB_dev_req, BANKED	; processing a GET_DESCRIPTOR request
-	movlw	low (CompatibleIdFeature-Descriptor_begin)
-	movwf	USB_desc_ptr, BANKED
-	call	Descriptor		; get descriptor length
+	call	getCompatibleIdFeature	; returns length of descriptor
 	movwf	USB_bytes_left, BANKED
 	goto	sendDescriptorRequestAnswer
 
@@ -774,31 +661,21 @@ getDescriptorRequest
 	goto	standardRequestsError
 
 getDeviceDescriptorRequest
-	movlw	low (Device-Descriptor_begin)
-	movwf	USB_desc_ptr, BANKED
-	call	Descriptor		; get descriptor length
+	call	getDeviceDescriptor	; returns length of Device
 	movwf	USB_bytes_left, BANKED
 	goto	sendDescriptorRequestAnswer
 
 getConfigurationDescriptorRequest
-	bcf	USB_error_flags, 0, BANKED
 	movf	USB_buffer_data+wValue, W, BANKED
-	btfsc	STATUS, Z, ACCESS	; skip if not zero
-	goto	getConfigurationDescriptor0
-	bsf	USB_error_flags, 0, BANKED
-	goto	standardRequestsError
-getConfigurationDescriptor0
-	movlw	low (Configuration1-Descriptor_begin)
-	addlw	0x02			; add offset for wTotalLength
-	movwf	USB_desc_ptr, BANKED
-	call	Descriptor		; get total descriptor length
+	btfss	STATUS, Z, ACCESS	; we know only descriptor 0
+	goto	standardRequestsError	; something else
+
+	call	getConfigurationDescriptor	; get total length
+	banksel	USB_bytes_left
 	movwf	USB_bytes_left, BANKED
-	movlw	0x02
-	subwf	USB_desc_ptr, F, BANKED	; subtract offset for wTotalLength
 	goto 	sendDescriptorRequestAnswer
 
 getStringDescriptorRequest
-	bcf	USB_error_flags, 0, BANKED
 	movf	USB_buffer_data+wValue, W, BANKED	; string no
 	sublw	I_EXTENSION_STRING	; MS extension: ask for string with special idx
 	btfsc	STATUS,Z,ACCESS		; skip if not Zero=it is a normal request
@@ -810,18 +687,12 @@ specialStringDescriptorRequest
 	goto	sendBackStringWithIndex
 normalStringDescriptorRequest
 	sublw	2
-	btfsc	STATUS,C
-	goto	getValidStringDescriptorRequest
-	bsf	USB_error_flags, 0, BANKED
-	goto	standardRequestsError
-getValidStringDescriptorRequest		; allright string index <= 2
+	btfss	STATUS,C
+	goto	standardRequestsError	; string index > 2
+	; all right string index <= 2
 	movf	USB_buffer_data+wValue, W, BANKED	; string no
 sendBackStringWithIndex
-	addlw	low (StringOffsetsTable - Descriptor_begin)
-	movwf	USB_desc_ptr, BANKED
-	call	Descriptor		; retrieve offset of requested string no
-	movwf	USB_desc_ptr, BANKED	; now retrieve the string descriptor itself
-	call	Descriptor		; get string descriptor length
+	call	getIndexedString	; get length
 	movwf	USB_bytes_left, BANKED
 	goto	sendDescriptorRequestAnswer
 
@@ -1012,9 +883,7 @@ sendNextDescriptorByte
 	btfss	STATUS,C,ACCESS
 	goto	descriptorSent
 
-	call	Descriptor		; get next byte of descriptor being sent
-	movwf	POSTINC0		; copy to EP0 IN buffer, and increment FSR0
-	incf	USB_desc_ptr, F, BANKED	; increment the descriptor pointer
+	call	copyNextDescriptorByte	; get next byte of descriptor being sent
 	incf	USB_loop_index,F,BANKED
 	goto	sendNextDescriptorByte
 

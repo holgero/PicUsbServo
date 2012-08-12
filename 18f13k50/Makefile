@@ -15,7 +15,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-OBJECTS=usb.o main.o
+OBJECTS=usb.o main.o descriptor.o
 
 %.o : %.asm
 	gpasm -c -p p18f13k50 -r dec -w 2 --define VID=0x$(VID) --define PID=0x$(PID) $<
