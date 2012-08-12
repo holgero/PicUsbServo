@@ -625,7 +625,7 @@ setEndpointFeatureInAddressStateRequest
 	bcf	UEP0, EPSTALL, ACCESS
 	movf	USB_buffer_data+bRequest, W, BANKED
 	sublw	CLEAR_FEATURE
-	btfss	STATUS, Z		; skip if == CLEAR_FEATURE
+	btfss	STATUS, Z, ACCESS	; skip if == CLEAR_FEATURE
 	bsf	UEP0, EPSTALL, ACCESS
 	goto	sendAnswerOk
 
@@ -647,7 +647,7 @@ continueAnswerConfigState
 	bcf	INDF0, EPSTALL, ACCESS
 	movf	USB_buffer_data+bRequest, W, BANKED
 	sublw	CLEAR_FEATURE
-	btfss	STATUS, Z		; skip if == CLEAR_FEATURE
+	btfss	STATUS, Z, ACCESS	; skip if == CLEAR_FEATURE
 	bsf	INDF0, EPSTALL, ACCESS
 	goto	sendAnswerOk
 

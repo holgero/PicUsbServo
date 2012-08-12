@@ -84,8 +84,8 @@ BD1ADRH			EQU	( USBMEMORY + 0x07 )
 USB_Buffer		EQU	( USBMEMORY + 0x0080 )
 
 ; BDSTAT bits
-UOWN			EQU	7
-DTSEN			EQU	3
+UOWN                   EQU     7
+DTSEN                  EQU     3
 
 ; offsets from the beginning of the Buffer Descriptor
 ADDRESSL		EQU	0x02
@@ -160,11 +160,6 @@ LED_states		RES	5
 usb_code		CODE	0x00082a
 
 InitUSB
-; begin debugging code
-	movlw	b'11111000'		; state as LEDs on RC<0:2>
-	movwf	TRISC,ACCESS
-	clrf	PORTC			; start with all LEDs off
-; end debugging code
 	clrf	UIE, ACCESS		; mask all USB interrupts
 	clrf	UIR, ACCESS		; clear all USB interrupt flags
 	clrf	UCFG, ACCESS		; disable eye pattern and ping-pong buffers
@@ -181,10 +176,6 @@ InitUSB
 	movwf	USB_protocol, BANKED	; default protocol to report protocol initially
 	movlw	NO_REQUEST
 	movwf	USB_dev_req, BANKED	; No device requests in process
-; begin debugging code
-	movlw	0x01
-	movwf	PORTC,ACCESS		; 1: init done
-; end debugging code
 	return
 
 ServiceUSB
@@ -257,10 +248,6 @@ sleepUsbSuspended
 	return
 	
 resetUSB
-; begin debugging code
-	movlw	0x02
-	movwf	PORTC,ACCESS		; 2: reset called
-; end debugging code
 	banksel		USB_curr_config
 	clrf		USB_curr_config, BANKED
 	bcf		UIR, TRNIF, ACCESS	; clear TRNIF four times to clear out the USTAT FIFO
@@ -319,10 +306,6 @@ dispatchRequest	macro	requestCode, requestLabel
 	endm
 
 processUSBTransaction
-; begin debugging code
-	movlw	0x03
-	movwf	PORTC,ACCESS		; 3: any transaction to process
-; end debugging code
 	movlw		high( USBMEMORY )
 	movwf		FSR0H, ACCESS
 	movf		USTAT, W, ACCESS
@@ -349,10 +332,6 @@ processUSBTransaction
 	return
 
 processSetupToken
-; begin debugging code
-	movlw	0x04
-	movwf	PORTC,ACCESS		; 4: process setup token
-; end debugging code
 	banksel	USB_buffer_data
 	movf	USB_buffer_desc+ADDRESSH, W, BANKED
 	movwf	FSR0H, ACCESS
@@ -403,10 +382,6 @@ setupTokenAllRequestTypes
 	goto	standardRequestsError
 
 standardRequests
-; begin debugging code
-	movlw	0x07
-	movwf	PORTC,ACCESS		; 7: standard requests
-; end debugging code
 	movf	USB_buffer_data+bRequest, W, BANKED
 	dispatchRequest	GET_STATUS, getStatusRequest
 	dispatchRequest	CLEAR_FEATURE, setFeatureRequest
@@ -695,7 +670,7 @@ continueAnswerConfigState
 	bcf	INDF0, EPSTALL, ACCESS
 	movf	USB_buffer_data+bRequest, W, BANKED
 	sublw	CLEAR_FEATURE
-	btfss	STATUS, Z		; skip if == CLEAR_FEATURE
+	btfss	STATUS, Z, ACCESS	; skip if == CLEAR_FEATURE
 	bsf	INDF0, EPSTALL, ACCESS
 	goto	sendAnswerOk
 
@@ -820,10 +795,6 @@ classSetIdle
 	goto	sendAnswerOk
 
 processInToken
-; begin debugging code
-	movlw	0x05
-	movwf	PORTC,ACCESS		; 5: process in token
-; end debugging code
 	banksel	USB_USTAT
 	movf	USB_USTAT, W, BANKED
 	andlw	0x18			; extract the EP bits
@@ -849,10 +820,6 @@ processInToken
 	return
 
 processOutToken
-; begin debugging code
-	movlw	0x06
-	movwf	PORTC,ACCESS		; 6: process out token
-; end debugging code
 	banksel	USB_USTAT
 	movf	USB_USTAT, W, BANKED
 	andlw	0x18			; extract the EP bits

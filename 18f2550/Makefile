@@ -15,15 +15,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-OBJECTS=usb.o main.o descriptor.o
+OBJECTS=usb.o
 
 %.o : %.asm
-	gpasm -c -p p18f2550 -r dec -w 2 --define VID=0x$(VID) --define PID=0x$(PID) $<
+	gpasm -c -p p18f2550 -r dec -w 2 $<
 
-all: firmware.hex
+all: $(OBJECTS)
 
-firmware.hex: $(OBJECTS)
-	gplink -o firmware.hex -a inhx32 -m $(OBJECTS)
+usb.o: descriptor.inc
 
 clean:
 	rm -f *.o *.map *.lst *.cod *.hex

@@ -1,5 +1,5 @@
 # USB Firmware for PICs
-# Makefile for the PIC 18f13k50, creates firmware.hex
+# Top level Makefile, runs make in subdirectories.
 #
 # Copyright (C) 2012 Holger Oehm
 #
@@ -15,16 +15,21 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-OBJECTS=usb.o
+all: checkVIDPID 18f13k50 18f2550
 
-%.o : %.asm
-	gpasm -c -p p18f13k50 -r dec -w 2 $<
+checkVIDPID:
+	@test "$(VID)" || ( echo "ERROR: missing VID"; exit 1 )
+	@test "$(PID)" || ( echo "ERROR: missing PID"; exit 1 )
+	@echo "Building with VID:PID=$(VID):$(PID)"
 
-all: $(OBJECTS)
+18f13k50:
+	$(MAKE) -C 18f13k50 clean all
 
-usb.o: descriptor.inc
+18f2550:
+	$(MAKE) -C 18f2550 clean all
 
 clean:
-	rm -f *.o *.map *.lst *.cod *.hex
+	$(MAKE) -C 18f13k50 clean
+	$(MAKE) -C 18f2550 clean
 
-.PHONY: all clean
+.PHONY: all clean checkVIDPID 18f13k50 18f2550

@@ -1,5 +1,5 @@
 # USB Firmware for PICs
-# Makefile for the PIC 18f13k50, creates firmware.hex
+# Makefile for the PIC 18f2550, creates firmware.hex.
 #
 # Copyright (C) 2012 Holger Oehm
 #
@@ -15,14 +15,17 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-OBJECTS=usb.o
+FIRMWARE=../../18f2550
+
+OBJECTS=main.o descriptor.o
 
 %.o : %.asm
-	gpasm -c -p p18f13k50 -r dec -w 2 $<
+	gpasm -c -p p18f2550 -r dec -w 2 --define VID=0x$(VID) --define PID=0x$(PID) -I $(FIRMWARE) $<
 
-all: $(OBJECTS)
+all: firmware.hex
 
-usb.o: descriptor.inc
+firmware.hex: $(OBJECTS)
+	gplink -o firmware.hex -a inhx32 -m $(OBJECTS) $(FIRMWARE)/usb.o
 
 clean:
 	rm -f *.o *.map *.lst *.cod *.hex

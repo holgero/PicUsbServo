@@ -34,6 +34,10 @@ There is a CI build of the firmware at travis-ci: http://travis-ci.org/holgero/P
 18f2550		Firmware for the PIC 18f2550 (maybe works on the complete
 		PIC family 18f[24][45]5x, maybe not)
 
+examples/18f13k50	example project that uses the 18f13k50 firmware
+
+examples/18f2550	example project that uses the 18f2550 firmware
+
 ## License
 
    Licensed under the Apache License, Version 2.0 (the "License");
