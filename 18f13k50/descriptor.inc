@@ -16,7 +16,6 @@
 
 ;**************************************************************
 ; definitions
-NUM_CONFIGURATIONS	EQU	1
 NUM_INTERFACES		EQU	1
 
 ; descriptor types
