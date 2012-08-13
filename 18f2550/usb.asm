@@ -446,9 +446,9 @@ getInterfaceRequest
 
 setConfigurationRequest
 	movf	USB_buffer_data+wValue,W,BANKED
-	sublw	NUM_CONFIGURATIONS
-	btfss	STATUS,C,ACCESS
-	goto	standardRequestsError	; USB_buffer_data+wValue > NUM_CONFIGURATIONS
+	call	getConfigurationDescriptor	; see if requested configuration is valid
+	btfsc	STATUS,Z,ACCESS
+	goto	standardRequestsError	; nope, total length was Zero: invalid
 	movf	USB_buffer_data+wValue, W, BANKED
 	movwf	USB_curr_config, BANKED
 	btfss	STATUS,Z,ACCESS		; skip if value is zero
@@ -458,7 +458,7 @@ setConfigurationRequest
 	movwf	USB_USWSTAT, BANKED
 	goto	sendAnswerOk
 setConfiguredState
-	; we know we have only one configuration, set it up
+	; we always set up the same configuration
 	movlw	CONFIG_STATE
 	movwf	USB_USWSTAT, BANKED
 	movlw	0x08
@@ -667,10 +667,9 @@ getDeviceDescriptorRequest
 
 getConfigurationDescriptorRequest
 	movf	USB_buffer_data+wValue, W, BANKED
-	btfss	STATUS, Z, ACCESS	; we know only descriptor 0
-	goto	standardRequestsError	; something else
-
 	call	getConfigurationDescriptor	; get total length
+	btfsc	STATUS, Z, ACCESS	; is descriptor index valid?
+	goto	standardRequestsError	; nope, Z is set
 	banksel	USB_bytes_left
 	movwf	USB_bytes_left, BANKED
 	goto 	sendDescriptorRequestAnswer
