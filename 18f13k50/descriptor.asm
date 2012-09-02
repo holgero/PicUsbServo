@@ -29,10 +29,6 @@
 	; W in: index of string
 	; W out: first byte of string descriptor (== length)
 
-	global	getCompatibleIdFeature
-	; prepares copying the CompatibleIdFeature
-	; W out: first byte of CompatibleIdFeature (== length)
-
 	global	getDeviceDescriptor
 	; prepares copying the Device descriptor
 	; W out: first byte of Device descriptor (== length)
@@ -94,11 +90,6 @@ getIndexedString
 	call	getDescriptor		; returns value from the StringOffsetsTable in W
 	movwf	nextDescriptorIdx, BANKED	; now retrieve the string descriptor itself
 	goto	getDescriptor			; first byte of descriptor == length
-
-getCompatibleIdFeature
-	movlw	low (CompatibleIdFeature-Descriptor_begin)
-	movwf	nextDescriptorIdx, BANKED
-	goto	getDescriptor		; get first byte == length
 
 getDeviceDescriptor
 	movlw	low (Device-Descriptor_begin)
@@ -163,63 +154,23 @@ db	0x0A				; bInterval (10 ms)
 ConfigurationsOffsetsTable
 db	Configuration0 - Descriptor_begin
 
-CompatibleIdFeature                     ; MS extension
-db	0x28, 0x00			; low(descriptorLength), high(descriptorLength)
-db	0x00, 0x00			; more lenght bytes, set to 0
-db	0x00, 0x01			; bcd version ('1.0')
-db	0x04, 0x00			; Compatibility ID Descriptor index (0x0004)
-db	0x01, 0x00			; Number of sections (1), reserved
-db	0x00, 0x00
-db	0x00, 0x00
-db	0x00, 0x00			; 6 reserved bytes
-db	0x00, 0x01			; Interface Number (Interface #0), Reserved
-db	'W', 'I', 'N', 'U', 'S', 'B'	; "WINUSB"
-db	0x00, 0x00			; "\0\0"
-db	0x00, 0x00, 0x00, 0x00
-db	0x00, 0x00, 0x00, 0x00		; Sub-Compatible ID (unused)
-db	0x00, 0x00, 0x00, 0x00
-db	0x00, 0x00			; Reserved 
-
 String0
 db	String1-String0, STRING		; bLength, bDescriptorType
 db	0x09, 0x04			; wLANGID[0]=0x0409: English (US)
 String1
 db	String2-String1, STRING		; bLength, bDescriptorType
 db	'H', 0x00			; bString
-db	'o', 0x00
-db	'l', 0x00
-db	'g', 0x00
-db	'e', 0x00
-db	'r', 0x00
-db	' ', 0x00
 db	'O', 0x00
-db	'e', 0x00
-db	'h', 0x00
-db	'm', 0x00
-String2
-db	StringEE-String2, STRING	; bLength, bDescriptorType
-db	'X', 0x00			; bString
-db	'F', 0x00
-db	'D', 0x00
-db	'e', 0x00
-db	'v', 0x00
-db	'i', 0x00
-db	'c', 0x00
-db	'e', 0x00
-StringEE				; special string to enable ms extensions
-db	Descriptor_end-StringEE, STRING	; bLength, bDescriptorType=STRING
-db	'M', 0x00
 db	'S', 0x00
-db	'F', 0x00
-db	'T', 0x00
-db	'1', 0x00
-db	'0', 0x00
-db	'0', 0x00
-db	VENDOR_CODE, 0x00		; Vendor Code, padding
+String2
+db	Descriptor_end-String2, STRING	; bLength, bDescriptorType
+db	'B', 0x00			; bString
+db	'4', 0x00
+db	'2', 0x00
 Descriptor_end
 
 StringOffsetsTable
 db	String0 - Descriptor_begin, String1 - Descriptor_begin
-db	String2 - Descriptor_begin, StringEE - Descriptor_begin
+db	String2 - Descriptor_begin
 
 			END

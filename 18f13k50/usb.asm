@@ -35,19 +35,12 @@
 	global	InitUSB
 	global	ServiceUSB
 	global	WaitConfiguredUSB
-	global	enableUSBInterrupts
-	global	sleepUsbSuspended
 
-;**************************************************************
-; exported variables
-	global	LED_states
-	global	USB_received
 ;**************************************************************
 ; imported subroutines
 ;	descriptor.asm
 	extern	copyNextDescriptorByte
 	extern	getIndexedString
-	extern	getCompatibleIdFeature
 	extern	getDeviceDescriptor
 	extern	getConfigurationDescriptor
 
@@ -237,16 +230,6 @@ suspendUSB
 	bsf	UCON, SUSPND, ACCESS	; suspend USB
 	return
 
-sleepUsbSuspended
-	banksel	USB_USWSTAT
-	movf	USB_USWSTAT,W,BANKED
-	sublw	SUSPEND_STATE
-	btfss	STATUS,Z,ACCESS		; skip if zero: we are suspended
-	return				; not suspended
-	bcf	OSCCON,IDLEN,ACCESS	; sleep tight (dont idle)
-	sleep
-	return
-	
 resetUSB
 	banksel		USB_curr_config
 	clrf		USB_curr_config, BANKED
@@ -378,7 +361,6 @@ setupTokenAllRequestTypes
 	andlw	0x60					; extract request type bits
 	dispatchRequest	STANDARD, standardRequests
 	dispatchRequest	CLASS, classRequests
-	dispatchRequest	VENDOR, vendorRequests
 	goto	standardRequestsError
 
 standardRequests
@@ -392,22 +374,6 @@ standardRequests
 	dispatchRequest	SET_CONFIGURATION, setConfigurationRequest
 	dispatchRequest	GET_INTERFACE, getInterfaceRequest
 	dispatchRequest	SET_INTERFACE, setInterfaceRequest
-
-vendorRequests
-	movf	USB_buffer_data+bRequest, W, BANKED
-	sublw	VENDOR_CODE		; our vendor code?
-	btfss	STATUS,Z,ACCESS		; skip if yes
-	goto	standardRequestsError	; something else
-	movf	USB_buffer_data+wIndex, W, BANKED
-	sublw	0x04			; special feature request index?
-	btfss	STATUS,Z,ACCESS		; skip if yes
-	goto	standardRequestsError	; something else
-; we are to return a compatible id feature descriptor
-	movlw	GET_DESCRIPTOR
-	movwf	USB_dev_req, BANKED	; processing a GET_DESCRIPTOR request
-	call	getCompatibleIdFeature	; returns length of descriptor
-	movwf	USB_bytes_left, BANKED
-	goto	sendDescriptorRequestAnswer
 
 standardRequestsError
 	banksel		UEP0
@@ -700,21 +666,12 @@ getConfigurationDescriptorRequest
 
 getStringDescriptorRequest
 	movf	USB_buffer_data+wValue, W, BANKED	; string no
-	sublw	I_EXTENSION_STRING	; MS extension: ask for string with special idx
-	btfsc	STATUS,Z,ACCESS		; skip if not Zero=it is a normal request
-	goto	specialStringDescriptorRequest
-	movf	USB_buffer_data+wValue, W, BANKED	; get string no again
-	goto	normalStringDescriptorRequest
-specialStringDescriptorRequest
-	movlw	3			; the real index of the special string
-	goto	sendBackStringWithIndex
 normalStringDescriptorRequest
 	sublw	2
 	btfss	STATUS,C
 	goto	standardRequestsError	; string index > 2
 	; all right string index <= 2
 	movf	USB_buffer_data+wValue, W, BANKED	; string no
-sendBackStringWithIndex
 	call	getIndexedString	; get length
 	movwf	USB_bytes_left, BANKED
 	goto	sendDescriptorRequestAnswer
@@ -935,12 +892,6 @@ WaitConfiguredUSB
 	clrf	LED_states+2, BANKED
 	clrf	LED_states+3, BANKED
 	clrf	LED_states+4, BANKED
-	return
-
-enableUSBInterrupts
-;	movlw	( 1 << URSTIE ) || ( 1 << TRNIE )
-	movlw	0xFF		; switch all interrupts on
-	movwf	UIE, ACCESS
 	return
 
 			END
