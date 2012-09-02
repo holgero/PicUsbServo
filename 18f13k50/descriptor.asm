@@ -59,7 +59,7 @@ NUM_CONFIGURATIONS	EQU	1
 
 ;**************************************************************
 ; code section
-descriptor_code		CODE	0x0f00
+descriptor_code		CODE
 
 copyNextDescriptorByte
 	call	getDescriptor

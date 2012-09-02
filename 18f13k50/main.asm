@@ -1,5 +1,5 @@
 ; USB bootloader for PICs
-; main routine and configuration
+; main routine
 ; Copyright (C) 2012 Holger Oehm
 ;
 ; Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,30 +16,6 @@
 
 #include <p18f13k50.inc>
 
-;**************************************************************
-; configuration
-	config USBDIV	= ON
-	config FOSC	= HS
-	config PLLEN	= ON
-        config FCMEN	= OFF
-        config IESO     = OFF
-	config WDTEN	= OFF
-        config WDTPS    = 32768
-        config MCLRE    = ON
-        config STVREN   = ON
-        config LVP      = OFF
-        config XINST    = OFF
-        config CP0      = OFF
-        config CP1      = OFF
-        config CPB      = OFF
-        config CPD      = OFF
-        config WRT0     = OFF
-        config WRT1     = OFF
-        config WRTB     = OFF
-        config WRTC     = OFF
-        config WRTD     = OFF
-        config EBTR0    = OFF
-        config EBTR1    = OFF
 ;**************************************************************
 ; imported subroutines
 ; usb.asm
@@ -88,15 +64,6 @@ main_accessbank		UDATA_ACS
 W_temp_LP		RES	1
 
 ;**************************************************************
-; real vectors (not needed if a bootloader is in place)
-realResetvector			ORG	0x0000
-	goto	main
-realHiprio_interruptvector	ORG	0x0008
-	goto	highPriorityInterrupt
-realLowprio_interruptvector	ORG	0x0018
-	goto	lowPriorityInterrupt
-
-;**************************************************************
 ; vectors
 resetvector		ORG	0x0800
 	goto	main
@@ -107,7 +74,7 @@ lowprio_interruptvector	ORG	0x0818
 
 ;**************************************************************
 ; main code
-main_code		CODE	0x01600
+main_code		CODE	0x0820
 
 highPriorityInterrupt
 	movff	FSR0H, FSR0H_temp_HP

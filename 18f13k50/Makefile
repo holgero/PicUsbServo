@@ -15,7 +15,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-OBJECTS=usb.o main.o descriptor.o
+OBJECTS=usb.o bootmain.o main.o descriptor.o
 
 all: bootloader.hex
 

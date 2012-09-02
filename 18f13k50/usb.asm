@@ -157,7 +157,7 @@ LED_states		RES	5
 
 ;**************************************************************
 ; code section
-usb_code		CODE	0x00082a
+usb_code		CODE
 
 InitUSB
 	clrf	UIE, ACCESS		; mask all USB interrupts
