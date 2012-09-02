@@ -25,9 +25,6 @@ There is a CI build of the firmware at travis-ci: http://travis-ci.org/holgero/P
 18f13k50	Bootloader for the PIC 18f13k50 (maybe works on the complete
 		PIC family 18f1xk50, maybe not)
 
-18f2550		Bootloader for the PIC 18f2550 (maybe works on the complete
-		PIC family 18f[24][45]5x, maybe not) 
-
 ## License
 
    Licensed under the Apache License, Version 2.0 (the "License");

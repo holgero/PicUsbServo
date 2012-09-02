@@ -1,5 +1,5 @@
-# USB Firmware for PICs
-# Makefile for the PIC 18f13k50, creates firmware.hex
+# USB bootloader for PICs
+# Makefile for the PIC 18f13k50, creates bootloader.hex
 #
 # Copyright (C) 2012 Holger Oehm
 #

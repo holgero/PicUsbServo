@@ -1,4 +1,4 @@
-; USB Firmware for PICs
+; USB bootloader for PICs
 ; global definitions for USB descriptors
 ; Copyright (C) 2012 Holger Oehm
 ;

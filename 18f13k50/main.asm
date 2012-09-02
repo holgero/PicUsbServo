@@ -1,4 +1,4 @@
-; USB Firmware for PICs
+; USB bootloader for PICs
 ; main routine and configuration
 ; Copyright (C) 2012 Holger Oehm
 ;

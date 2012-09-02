@@ -1,4 +1,4 @@
-; USB Firmware for PICs
+; USB bootloader for PICs
 ; the usb firmware
 ; Copyright (C) 2012 Holger Oehm
 ;
@@ -461,6 +461,7 @@ getInterfaceRequest
 
 setConfigurationRequest
 	movf	USB_buffer_data+wValue,W,BANKED
+	addlw	0xff				; check is zero based: 0..NUM_CONFIG-1 are valid
 	call	getConfigurationDescriptor	; see if requested configuration is valid
 	btfsc	STATUS,Z,ACCESS
 	goto	standardRequestsError	; nope, total length was Zero: invalid

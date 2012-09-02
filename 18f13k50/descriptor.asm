@@ -1,4 +1,4 @@
-; USB Firmware for PICs
+; USB bootloader for PICs
 ; descriptors for USB
 ; Copyright (C) 2012 Holger Oehm
 ;
@@ -55,7 +55,7 @@ length_tmp		RES	1
 
 ;**************************************************************
 ; local definitions
-NUM_CONFIGURATIONS	EQU	2
+NUM_CONFIGURATIONS	EQU	1
 
 ;**************************************************************
 ; code section
@@ -160,23 +160,8 @@ db	0x81, 0x03			; bEndpointAddress (EP1 IN), bmAttributes (Interrupt)
 db	0x08, 0x00			; low(wMaxPacketSize), high(wMaxPacketSize)
 db	0x0A				; bInterval (10 ms)
 
-Configuration1
-db	0x09, CONFIGURATION		; bLength, bDescriptorType
-db	0x19, 0x00			; low(wTotalLength), high(wTotalLength)
-db	NUM_INTERFACES, 0x02		; bNumInterfaces, bConfigurationValue
-db	0x00, 0x80			; iConfiguration (none), bmAttributes
-db	0xFA, 0x09			; bMaxPower (500 mA), interface1: blength
-db	INTERFACE, 0x00			; INTERFACE, 0x00
-db	0x00, 0x01			; bAlternateSetting, bNumEndpoints (excluding EP0)
-db	0xFF, 0x00			; bInterfaceClass (vendor specific), bInterfaceSubClass (no subclass)
-db	0x00, 0x00			; bInterfaceProtocol (none), iInterface (none)
-db	0x07, ENDPOINT			; EP0: bLength, bDescriptorType
-db	0x81, 0x03			; bEndpointAddress (EP1 IN), bmAttributes (Interrupt)
-db	0x08, 0x00			; low(wMaxPacketSize), high(wMaxPacketSize)
-db	0x0A				; bInterval (10 ms)
-
 ConfigurationsOffsetsTable
-db	Configuration0 - Descriptor_begin, Configuration1 - Descriptor_begin
+db	Configuration0 - Descriptor_begin
 
 CompatibleIdFeature                     ; MS extension
 db	0x28, 0x00			; low(descriptorLength), high(descriptorLength)
