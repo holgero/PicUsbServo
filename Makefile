@@ -15,7 +15,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-all: 18f13k50 18f2550 examples
+all: checkVIDPID 18f13k50 18f2550
+
+checkVIDPID:
+	@test "$(VID)" || ( echo "ERROR: missing VID"; exit 1 )
+	@test "$(PID)" || ( echo "ERROR: missing PID"; exit 1 )
+	@echo "Building with VID:PID=$(VID):$(PID)"
 
 18f13k50:
 	$(MAKE) -C 18f13k50 clean all
@@ -23,11 +28,8 @@ all: 18f13k50 18f2550 examples
 18f2550:
 	$(MAKE) -C 18f2550 clean all
 
-examples: 18f2550 18f13k50
-	$(MAKE) -C examples
-
 clean:
 	$(MAKE) -C 18f13k50 clean
 	$(MAKE) -C 18f2550 clean
 
-.PHONY: all clean checkVIDPID 18f13k50 18f2550 examples
+.PHONY: all clean checkVIDPID 18f13k50 18f2550
