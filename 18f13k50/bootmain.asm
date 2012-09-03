@@ -66,26 +66,27 @@ bootmain_udata		UDATA
 
 ;**************************************************************
 ; reset and interrupt vectors
-realResetvector			ORG	0x0000
-	goto	bootmain
-realHiprio_interruptvector	ORG	0x0008
+realResetVector		ORG	0x0000
+	clrf	WPUB, ACCESS
+	clrf	WPUA, ACCESS
+	bcf	INTCON2, RABPU, ACCESS
+	bra	preBootMain
+interruptHi		ORG	0x0008
 	goto	hiprio_interruptvector
-realLowprio_interruptvector	ORG	0x0018
+preBootMain
+	bsf	WPUB, WPUB7, ACCESS
+	nop
+	btfss	PORTB, RB7		; test jumper on RB7
+	bra	bootLoaderActive
+	bsf	INTCON2, RABPU, ACCESS
+	bra	runApplication
+interruptLo		ORG	0x0018
 	goto	lowprio_interruptvector
 
 ;**************************************************************
 ; bootmain code
-bootmain_code		CODE
 
-bootmain
-	clrf	WPUB, ACCESS
-	clrf	WPUA, ACCESS
-	bcf	INTCON2, RABPU, ACCESS
-	bsf	WPUB, WPUB7, ACCESS
-	nop
-	btfss	PORTB, RB7		; test jumper on RB7
-	goto	bootLoaderActive
-	bsf	INTCON2, RABPU, ACCESS
+runApplication
 	movlw	0xff
 	movwf	WPUB, ACCESS
 	movwf	WPUA, ACCESS

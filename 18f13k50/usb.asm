@@ -51,7 +51,6 @@ POWERED_STATE		EQU	0x00
 DEFAULT_STATE		EQU	0x01
 ADDRESS_STATE		EQU	0x02
 CONFIG_STATE		EQU	0x03
-SUSPEND_STATE		EQU	0x04
 
 ; endpoint types
 ENDPT_IN		EQU	0x12
@@ -208,25 +207,10 @@ clearActivityBitLoop
 	bcf	UIR, ACTVIF, ACCESS
 	btfsc	UIR, ACTVIF, ACCESS
 	goto	clearActivityBitLoop
-	banksel	USB_USWSTAT
-	movf	USB_USWSTAT,W,BANKED
-	sublw	SUSPEND_STATE
-	btfss	STATUS,Z,ACCESS		; skip if zero: we were suspended
-	goto	activNotFromSuspendMode	; not suspended, leave USB_USWSTAT as is
-	movlw	CONFIG_STATE		; restore CONFIG_STATE
-	movwf	USB_USWSTAT,BANKED
-activNotFromSuspendMode
 	return
 
 suspendUSB
 	bcf	UIR, IDLEIF, ACCESS
-	banksel	USB_USWSTAT
-	movf	USB_USWSTAT,W,BANKED
-	sublw	CONFIG_STATE
-	btfss	STATUS,Z,ACCESS		; skip if zero: we are configured
-	return				; not even configured: refuse to suspend
-	movlw	SUSPEND_STATE
-	movwf	USB_USWSTAT,BANKED
 	bsf	UCON, SUSPND, ACCESS	; suspend USB
 	return
 
