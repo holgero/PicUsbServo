@@ -183,20 +183,20 @@ ServiceUSB
 	bcf	UIR, SOFIF, ACCESS
 
 	btfsc	UIR, IDLEIF, ACCESS
-	goto	suspendUSB
+	bra	suspendUSB
 
 	btfsc	UIR, ACTVIF, ACCESS
-	goto	resumeUSB
+	bra	resumeUSB
 
 	btfsc	UIR, STALLIF, ACCESS
 	bcf	UIR, STALLIF, ACCESS
 
 	btfsc	UIR, URSTIF, ACCESS
-	goto	resetUSB
+	bra	resetUSB
 
 	btfsc	UIR, TRNIF, ACCESS
 	; USB transaction complete, process it
-	goto	processUSBTransaction
+	bra	processUSBTransaction
 
 	return
 
@@ -206,7 +206,7 @@ resumeUSB
 clearActivityBitLoop
 	bcf	UIR, ACTVIF, ACCESS
 	btfsc	UIR, ACTVIF, ACCESS
-	goto	clearActivityBitLoop
+	bra	clearActivityBitLoop
 	return
 
 suspendUSB
@@ -268,7 +268,7 @@ resetUSB
 dispatchRequest	macro	requestCode, requestLabel
 	xorlw	requestCode
 	btfsc	STATUS,Z,ACCESS
-	goto	requestLabel
+	bra	requestLabel
 	xorlw	requestCode
 	endm
 
@@ -329,9 +329,9 @@ processSetupToken
 	movf	USB_buffer_data+bmRequestType,W,BANKED
 	sublw	HID_SET_REPORT
 	btfss	STATUS,Z,ACCESS		; skip if request type is HID_SET_REPORT
-	goto	setupTokenOtherRequestTypes
+	bra	setupTokenOtherRequestTypes
 	movlw	0xC8
-	goto	setupTokenAllRequestTypes
+	bra	setupTokenAllRequestTypes
 setupTokenOtherRequestTypes
 	movlw	0x88
 setupTokenAllRequestTypes
@@ -345,7 +345,7 @@ setupTokenAllRequestTypes
 	andlw	0x60					; extract request type bits
 	dispatchRequest	STANDARD, standardRequests
 	dispatchRequest	CLASS, classRequests
-	goto	standardRequestsError
+	bra	standardRequestsError
 
 standardRequests
 	movf	USB_buffer_data+bRequest, W, BANKED
@@ -376,7 +376,7 @@ gotoRequestErrorIfNotConfigured	macro
 	movf	USB_USWSTAT, W, BANKED
 	sublw	CONFIG_STATE		; are we configured?
 	btfss	STATUS,Z,ACCESS		; skip if yes
-	goto	standardRequestsError	; not yet configured
+	bra	standardRequestsError	; not yet configured
 	endm
 	
 setInterfaceRequest
@@ -385,12 +385,12 @@ setInterfaceRequest
 	movlw	NUM_INTERFACES
 	subwf	USB_buffer_data+wIndex,W,BANKED
 	btfsc	STATUS,C,ACCESS
-	goto	standardRequestsError	; USB_buffer_data+wIndex < NUM_INTERFACES
+	bra	standardRequestsError	; USB_buffer_data+wIndex < NUM_INTERFACES
 	movf	USB_buffer_data+wValue, W, BANKED
 	; bAlternateSetting needs to be 0
 	btfss	STATUS,Z,ACCESS		; skip if zero
-	goto	standardRequestsError	; not zero
-	goto	sendAnswerOk	; ok
+	bra	standardRequestsError	; not zero
+	bra	sendAnswerOk		; ok
 
 getInterfaceRequest
 	gotoRequestErrorIfNotConfigured
@@ -398,7 +398,7 @@ getInterfaceRequest
 	movlw	NUM_INTERFACES
 	subwf	USB_buffer_data+wIndex,W,BANKED
 	btfsc	STATUS,C,ACCESS
-	goto	standardRequestsError	; USB_buffer_data+wIndex < NUM_INTERFACES
+	bra	standardRequestsError	; USB_buffer_data+wIndex < NUM_INTERFACES
 	banksel	BD1ADRH
 	movf	BD1ADRH, W, BANKED
 	movwf	FSR0H, ACCESS
@@ -407,22 +407,22 @@ getInterfaceRequest
 	clrf	INDF0		; always send back 0 for bAlternateSetting
 	movlw	0x01
 	movwf	BD1CNT, BANKED	; set byte count to 1
-	goto	sendAnswer
+	bra	sendAnswer
 
 setConfigurationRequest
 	movf	USB_buffer_data+wValue,W,BANKED
 	addlw	0xff				; check is zero based: 0..NUM_CONFIG-1 are valid
 	call	getConfigurationDescriptor	; see if requested configuration is valid
 	btfsc	STATUS,Z,ACCESS
-	goto	standardRequestsError	; nope, total length was Zero: invalid
+	bra	standardRequestsError	; nope, total length was Zero: invalid
 	movf	USB_buffer_data+wValue, W, BANKED
 	movwf	USB_curr_config, BANKED
 	btfss	STATUS,Z,ACCESS		; skip if value is zero
-	goto	setConfiguredState
+	bra	setConfiguredState
 	; set address state
 	movlw	ADDRESS_STATE
 	movwf	USB_USWSTAT, BANKED
-	goto	sendAnswerOk
+	bra	sendAnswerOk
 setConfiguredState
 	; we always set up the same configuration
 	movlw	CONFIG_STATE
@@ -440,7 +440,7 @@ setConfiguredState
 	banksel	UEP1
 	movwf	UEP1, BANKED		; enable EP1 for interrupt in transfers
 	banksel	BD1CNT+0x08
-	goto	sendAnswerOk
+	bra	sendAnswerOk
 
 getConfigurationRequest
 	banksel	BD1ADRH
@@ -454,16 +454,16 @@ getConfigurationRequest
 	banksel	BD1CNT
 	movlw	0x01
 	movwf	BD1CNT, BANKED		; set EP0 IN byte count to 1
-	goto	sendAnswer
+	bra	sendAnswer
 
 setAddressRequest
 	btfsc	USB_buffer_data+wValue, 7, BANKED 
-	goto	standardRequestsError	; new device address illegal
+	bra	standardRequestsError	; new device address illegal
 	movlw	SET_ADDRESS
 	movwf	USB_dev_req, BANKED	; processing a SET_ADDRESS request
 	movf	USB_buffer_data+wValue, W, BANKED
 	movwf	USB_address_pending, BANKED	; save new address
-	goto	sendAnswerOk
+	bra	sendAnswerOk
 
 getStatusRequest
 	movf	USB_buffer_data+bmRequestType, W, BANKED
@@ -471,7 +471,7 @@ getStatusRequest
 	dispatchRequest	RECIPIENT_DEVICE, getDeviceStatusRequest
 	dispatchRequest	RECIPIENT_INTERFACE, getInterfaceStatusRequest
 	dispatchRequest RECIPIENT_ENDPOINT, getEndpointStatusRequest
-	goto	standardRequestsError
+	bra	standardRequestsError
 
 getDeviceStatusRequest
 	banksel	BD1ADRH
@@ -487,14 +487,14 @@ getDeviceStatusRequest
 	banksel	BD1CNT
 	movlw	0x02
 	movwf	BD1CNT, BANKED		; set byte count to 2
-	goto	sendAnswer
+	bra	sendAnswer
 
 getInterfaceStatusRequest
 	gotoRequestErrorIfNotConfigured
 	movlw	NUM_INTERFACES
 	subwf	USB_buffer_data+wIndex,W,BANKED
 	btfsc	STATUS,C,ACCESS
-	goto	standardRequestsError	; USB_buffer_data+wIndex < NUM_INTERFACES
+	bra	standardRequestsError	; USB_buffer_data+wIndex < NUM_INTERFACES
 	banksel	BD1ADRH
 	movf	BD1ADRH, W, BANKED
 	movwf	FSR0H, ACCESS
@@ -504,19 +504,19 @@ getInterfaceStatusRequest
 	clrf	INDF0
 	movlw	0x02
 	movwf	BD1CNT, BANKED		; set byte count to 2
-	goto	sendAnswer
+	bra	sendAnswer
 
 getEndpointStatusRequest
 	movf	USB_USWSTAT, W, BANKED
 	dispatchRequest	ADDRESS_STATE, getEndpointStatusInAddressStateRequest
 	dispatchRequest	CONFIG_STATE, getEndpointStatusInConfiguredStateRequest
-	goto	standardRequestsError
+	bra	standardRequestsError
 
 getEndpointStatusInAddressStateRequest
 	movf	USB_buffer_data+wIndex, W, BANKED	; get EP
 	andlw	0x0F			; strip off direction bit
 	btfss	STATUS,Z,ACCESS		; is it EP0?
-	goto	standardRequestsError	; not zero
+	bra	standardRequestsError	; not zero
 	banksel	BD1ADRH
 	movf	BD1ADRH, W, BANKED	; put EP0 IN buffer ptr
 	movwf	FSR0H, ACCESS
@@ -531,7 +531,7 @@ getEndpointStatusInAddressStateRequest
 	banksel	BD1CNT
 	movlw	0x02
 	movwf	BD1CNT, BANKED		; set byte count to 2
-	goto	sendAnswer
+	bra	sendAnswer
 
 getEndpointStatusInConfiguredStateRequest
 	banksel	BD1ADRH
@@ -547,9 +547,9 @@ getEndpointStatusInConfiguredStateRequest
 	movf	USB_buffer_data+wIndex, W, BANKED  ; get EP and...
 	andlw	0x0F			; ...strip off direction bit
 	btfsc	PLUSW1, EPOUTEN, ACCESS
-	goto	okToReply
+	bra	okToReply
 	btfss	PLUSW1, EPINEN, ACCESS
-	goto	standardRequestsError	; neither EPOUTEN nor EPINEN are set
+	bra	standardRequestsError	; neither EPOUTEN nor EPINEN are set
 okToReply
 	; send back the state of the EPSTALL bit + 0 byte
 	movlw	0x01
@@ -560,38 +560,37 @@ okToReply
 	banksel	BD1CNT
 	movlw	0x02
 	movwf	BD1CNT, BANKED		; set byte count to 2
-	goto	sendAnswer
+	bra	sendAnswer
 
 setFeatureRequest
 	movf	USB_buffer_data+bmRequestType, W, BANKED
 	andlw	0x1F				; extract request recipient bits
 	dispatchRequest	RECIPIENT_DEVICE, setDeviceFeatureRequest
 	dispatchRequest	RECIPIENT_ENDPOINT, setEndpointFeatureRequest
-	goto	standardRequestsError
+	bra	standardRequestsError
 
 setDeviceFeatureRequest
 	movf	USB_buffer_data+wValue, W, BANKED
 	sublw	WAKEUP_REQUEST
 	btfss	STATUS, Z, ACCESS	; skip if request is wakeup
-	goto	standardRequestsError	; dunno what to do with this request
+	bra	standardRequestsError	; dunno what to do with this request
 	bcf	USB_device_status, 1, BANKED
 	movf	USB_buffer_data+bRequest, W, BANKED
 	sublw	CLEAR_FEATURE
 	btfss	STATUS, Z		; skip if == CLEAR_FEATURE
 	bsf	USB_device_status, 1, BANKED
-	goto	sendAnswerOk
+	bra	sendAnswerOk
 
 setEndpointFeatureRequest
 	movf		USB_USWSTAT, W, BANKED
 	dispatchRequest	ADDRESS_STATE, setEndpointFeatureInAddressStateRequest
 	dispatchRequest	CONFIG_STATE, setEndpointFeatureInConfiguredStateRequest
-	goto	standardRequestsError
+	bra	standardRequestsError
 
 setEndpointFeatureInAddressStateRequest
 	movf	USB_buffer_data+wIndex, W, BANKED ; get EP
 	andlw	0x0F			; strip off direction bit
-	btfss	STATUS,Z,ACCESS		; is it EP0?
-	goto	standardRequestsError	; not zero
+	bnz	standardRequestsError	; not zero
 	banksel	UEP0
 	bcf	UEP0, EPSTALL, BANKED
 	banksel	USB_buffer_data+bRequest
@@ -601,7 +600,7 @@ setEndpointFeatureInAddressStateRequest
 	btfss	STATUS, Z, ACCESS	; skip if == CLEAR_FEATURE
 	bsf	UEP0, EPSTALL, BANKED
 	banksel	USB_buffer_data
-	goto	sendAnswerOk
+	bra	sendAnswerOk
 
 setEndpointFeatureInConfiguredStateRequest
 	movlw	high UEP0		; put UEP0 address...
@@ -614,16 +613,16 @@ setEndpointFeatureInConfiguredStateRequest
 	btfsc	STATUS, C, ACCESS
 	incf	FSR0H, F, ACCESS
 	btfsc	INDF0, EPOUTEN, ACCESS
-	goto	continueAnswerConfigState
+	bra	continueAnswerConfigState
 	btfss	INDF0, EPINEN, ACCESS
-	goto	standardRequestsError	; neither EPOUTEN nor EPINEN are set: error
+	bra	standardRequestsError	; neither EPOUTEN nor EPINEN are set: error
 continueAnswerConfigState
 	bcf	INDF0, EPSTALL, ACCESS
 	movf	USB_buffer_data+bRequest, W, BANKED
 	sublw	CLEAR_FEATURE
 	btfss	STATUS, Z, ACCESS	; skip if == CLEAR_FEATURE
 	bsf	INDF0, EPSTALL, ACCESS
-	goto	sendAnswerOk
+	bra	sendAnswerOk
 
 getDescriptorRequest
 	movlw	GET_DESCRIPTOR
@@ -632,33 +631,33 @@ getDescriptorRequest
 	dispatchRequest	DEVICE, getDeviceDescriptorRequest
 	dispatchRequest	CONFIGURATION, getConfigurationDescriptorRequest
 	dispatchRequest	STRING, getStringDescriptorRequest
-	goto	standardRequestsError
+	bra	standardRequestsError
 
 getDeviceDescriptorRequest
 	call	getDeviceDescriptor	; returns length of Device
 	movwf	USB_bytes_left, BANKED
-	goto	sendDescriptorRequestAnswer
+	bra	sendDescriptorRequestAnswer
 
 getConfigurationDescriptorRequest
 	movf	USB_buffer_data+wValue, W, BANKED
 	call	getConfigurationDescriptor	; get total length
 	btfsc	STATUS, Z, ACCESS	; is descriptor index valid?
-	goto	standardRequestsError	; nope, Z is set
+	bra	standardRequestsError	; nope, Z is set
 	banksel	USB_bytes_left
 	movwf	USB_bytes_left, BANKED
-	goto 	sendDescriptorRequestAnswer
+	bra 	sendDescriptorRequestAnswer
 
 getStringDescriptorRequest
 	movf	USB_buffer_data+wValue, W, BANKED	; string no
 normalStringDescriptorRequest
 	sublw	2
 	btfss	STATUS,C
-	goto	standardRequestsError	; string index > 2
+	bra	standardRequestsError	; string index > 2
 	; all right string index <= 2
 	movf	USB_buffer_data+wValue, W, BANKED	; string no
 	call	getIndexedString	; get length
 	movwf	USB_bytes_left, BANKED
-	goto	sendDescriptorRequestAnswer
+	bra	sendDescriptorRequestAnswer
 
 classRequests
 	movf	USB_buffer_data+bRequest, W, BANKED
@@ -668,7 +667,7 @@ classRequests
 	dispatchRequest	SET_PROTOCOL, classSetProtocol
 	dispatchRequest	GET_IDLE, classGetIdle
 	dispatchRequest	SET_IDLE, classSetIdle
-	goto	standardRequestsError
+	bra	standardRequestsError
 
 classGetReport				; report current LED_state
 	banksel	BD1ADRH
@@ -690,7 +689,7 @@ classGetReport				; report current LED_state
 	banksel	BD1CNT
 	movlw	0x05
 	movwf	BD1CNT, BANKED		; set EP0 IN buffer byte count
-	goto	sendAnswer
+	bra	sendAnswer
 
 classSetReport
 	movlw	SET_REPORT
@@ -709,12 +708,12 @@ classGetProtocol
 	banksel	BD1CNT
 	movlw	0x01
 	movwf	BD1CNT, BANKED		; set byte count to 1
-	goto	sendAnswer
+	bra	sendAnswer
 
 classSetProtocol
 	movf	USB_buffer_data+wValue, W, BANKED
 	movwf	USB_protocol, BANKED	; update the new protocol value
-	goto	sendAnswerOk
+	bra	sendAnswerOk
 
 classGetIdle
 	banksel	BD1ADRH
@@ -728,12 +727,12 @@ classGetIdle
 	banksel	BD1CNT
 	movlw	0x01
 	movwf	BD1CNT, BANKED		; set byte count to 1
-	goto	sendAnswer
+	bra	sendAnswer
 
 classSetIdle
 	movf	USB_buffer_data+wValue, W, BANKED
 	movwf	USB_idle_rate, BANKED	; update the new idle rate
-	goto	sendAnswerOk
+	bra	sendAnswerOk
 
 processInToken
 	banksel	USB_USTAT
@@ -745,7 +744,7 @@ processInToken
 	movf	USB_dev_req, W, BANKED
 	sublw	GET_DESCRIPTOR
 	btfsc	STATUS, Z, ACCESS	; skip if not GET_DESCRIPTOR
-	goto	SendDescriptorPacket
+	bra	SendDescriptorPacket
 	movf	USB_dev_req, W, BANKED
 	sublw	SET_ADDRESS
 	btfss	STATUS, Z, ACCESS	; skip if it is SET_ADDRESS
@@ -776,7 +775,7 @@ processOutToken
 	movwf	BD0CNT, BANKED
 	movlw	0x88
 	movwf	BD0STAT, BANKED
-	goto	sendAnswerOk
+	bra	sendAnswerOk
 
 setReport
 	movlw	NO_REQUEST
@@ -804,11 +803,11 @@ setReport
 sendDescriptorRequestAnswer
 	movf	USB_buffer_data+(wLength+1),W,BANKED
 	btfss	STATUS,Z,ACCESS		; skip if zero
-	goto	SendDescriptorPacket
+	bra	SendDescriptorPacket
 	movf	USB_bytes_left,W,BANKED
 	subwf	USB_buffer_data+wLength,W,BANKED
 	btfsc	STATUS,C,ACCESS	
-	goto	SendDescriptorPacket	; USB_buffer_data+wLength >= USB_bytes_left
+	bra	SendDescriptorPacket	; USB_buffer_data+wLength >= USB_bytes_left
 	movf	USB_buffer_data+wLength, W, BANKED
 	movwf	USB_bytes_left, BANKED
 
@@ -818,12 +817,12 @@ SendDescriptorPacket
 	movlw	0x08
 	subwf	USB_bytes_left,W,BANKED
 	btfsc	STATUS,C,ACCESS
-	goto	longDescriptor		; bytes_left > 8
+	bra	longDescriptor		; bytes_left > 8
 
 	movlw	NO_REQUEST
 	movwf	USB_dev_req, BANKED	; sending a short packet, so clear device request
 	movf	USB_bytes_left, W, BANKED
-	goto	shortDescriptor
+	bra	shortDescriptor
 
 longDescriptor
 	movlw	0x08
@@ -847,11 +846,11 @@ sendNextDescriptorByte
 	movf	USB_loop_index,W,BANKED
 	subwf	USB_packet_length,W,BANKED
 	btfss	STATUS,C,ACCESS
-	goto	descriptorSent
+	bra	descriptorSent
 
 	call	copyNextDescriptorByte	; get next byte of descriptor being sent
 	incf	USB_loop_index,F,BANKED
-	goto	sendNextDescriptorByte
+	bra	sendNextDescriptorByte
 
 descriptorSent
 	banksel	BD1STAT
@@ -868,7 +867,7 @@ WaitConfiguredUSB
 	movf	USB_USWSTAT,W,BANKED
 	sublw	CONFIG_STATE
 	btfss	STATUS,Z,ACCESS
-	goto	WaitConfiguredUSB	; ...until the host configures the peripheral
+	bra	WaitConfiguredUSB	; ...until the host configures the peripheral
 
 	banksel	LED_states
 	clrf	LED_states, BANKED
