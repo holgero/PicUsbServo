@@ -349,15 +349,10 @@ setupTokenAllRequestTypes
 
 standardRequests
 	movf	USB_buffer_data+bRequest, W, BANKED
-	dispatchRequest	GET_STATUS, getStatusRequest
-	dispatchRequest	CLEAR_FEATURE, setFeatureRequest
-	dispatchRequest	SET_FEATURE, setFeatureRequest
 	dispatchRequest	SET_ADDRESS, setAddressRequest
 	dispatchRequest	GET_DESCRIPTOR, getDescriptorRequest
 	dispatchRequest	GET_CONFIGURATION, getConfigurationRequest
 	dispatchRequest	SET_CONFIGURATION, setConfigurationRequest
-	dispatchRequest	GET_INTERFACE, getInterfaceRequest
-	dispatchRequest	SET_INTERFACE, setInterfaceRequest
 
 standardRequestsError
 	banksel		UEP0
@@ -371,43 +366,6 @@ sendAnswer
 	movlw		0xC8
 	movwf		BD1STAT, BANKED	; send packet as DATA1, set UOWN bit
 	return
-
-gotoRequestErrorIfNotConfigured	macro
-	movf	USB_USWSTAT, W, BANKED
-	sublw	CONFIG_STATE		; are we configured?
-	btfss	STATUS,Z,ACCESS		; skip if yes
-	bra	standardRequestsError	; not yet configured
-	endm
-	
-setInterfaceRequest
-	gotoRequestErrorIfNotConfigured
-
-	movlw	NUM_INTERFACES
-	subwf	USB_buffer_data+wIndex,W,BANKED
-	btfsc	STATUS,C,ACCESS
-	bra	standardRequestsError	; USB_buffer_data+wIndex < NUM_INTERFACES
-	movf	USB_buffer_data+wValue, W, BANKED
-	; bAlternateSetting needs to be 0
-	btfss	STATUS,Z,ACCESS		; skip if zero
-	bra	standardRequestsError	; not zero
-	bra	sendAnswerOk		; ok
-
-getInterfaceRequest
-	gotoRequestErrorIfNotConfigured
-
-	movlw	NUM_INTERFACES
-	subwf	USB_buffer_data+wIndex,W,BANKED
-	btfsc	STATUS,C,ACCESS
-	bra	standardRequestsError	; USB_buffer_data+wIndex < NUM_INTERFACES
-	banksel	BD1ADRH
-	movf	BD1ADRH, W, BANKED
-	movwf	FSR0H, ACCESS
-	movf	BD1ADRL, W, BANKED	; get buffer pointer
-	movwf	FSR0L, ACCESS
-	clrf	INDF0		; always send back 0 for bAlternateSetting
-	movlw	0x01
-	movwf	BD1CNT, BANKED	; set byte count to 1
-	bra	sendAnswer
 
 setConfigurationRequest
 	movf	USB_buffer_data+wValue,W,BANKED
@@ -463,165 +421,6 @@ setAddressRequest
 	movwf	USB_dev_req, BANKED	; processing a SET_ADDRESS request
 	movf	USB_buffer_data+wValue, W, BANKED
 	movwf	USB_address_pending, BANKED	; save new address
-	bra	sendAnswerOk
-
-getStatusRequest
-	movf	USB_buffer_data+bmRequestType, W, BANKED
-	andlw	0x1F			; extract request recipient bits
-	dispatchRequest	RECIPIENT_DEVICE, getDeviceStatusRequest
-	dispatchRequest	RECIPIENT_INTERFACE, getInterfaceStatusRequest
-	dispatchRequest RECIPIENT_ENDPOINT, getEndpointStatusRequest
-	bra	standardRequestsError
-
-getDeviceStatusRequest
-	banksel	BD1ADRH
-	movf	BD1ADRH, W, BANKED
-	movwf	FSR0H, ACCESS
-	movf	BD1ADRL, W, BANKED	; get buffer pointer
-	movwf	FSR0L, ACCESS
-	banksel	USB_device_status
-	; copy device status byte to EP0 buffer
-	movf	USB_device_status, W, BANKED	
-	movwf	POSTINC0
-	clrf	INDF0
-	banksel	BD1CNT
-	movlw	0x02
-	movwf	BD1CNT, BANKED		; set byte count to 2
-	bra	sendAnswer
-
-getInterfaceStatusRequest
-	gotoRequestErrorIfNotConfigured
-	movlw	NUM_INTERFACES
-	subwf	USB_buffer_data+wIndex,W,BANKED
-	btfsc	STATUS,C,ACCESS
-	bra	standardRequestsError	; USB_buffer_data+wIndex < NUM_INTERFACES
-	banksel	BD1ADRH
-	movf	BD1ADRH, W, BANKED
-	movwf	FSR0H, ACCESS
-	movf	BD1ADRL, W, BANKED	; get buffer pointer
-	movwf	FSR0L, ACCESS
-	clrf	POSTINC0
-	clrf	INDF0
-	movlw	0x02
-	movwf	BD1CNT, BANKED		; set byte count to 2
-	bra	sendAnswer
-
-getEndpointStatusRequest
-	movf	USB_USWSTAT, W, BANKED
-	dispatchRequest	ADDRESS_STATE, getEndpointStatusInAddressStateRequest
-	dispatchRequest	CONFIG_STATE, getEndpointStatusInConfiguredStateRequest
-	bra	standardRequestsError
-
-getEndpointStatusInAddressStateRequest
-	movf	USB_buffer_data+wIndex, W, BANKED	; get EP
-	andlw	0x0F			; strip off direction bit
-	btfss	STATUS,Z,ACCESS		; is it EP0?
-	bra	standardRequestsError	; not zero
-	banksel	BD1ADRH
-	movf	BD1ADRH, W, BANKED	; put EP0 IN buffer ptr
-	movwf	FSR0H, ACCESS
-	movf	BD1ADRL, W, BANKED
-	movwf	FSR0L, ACCESS		; ...into FSR0
-	banksel	UEP0
-	movlw	0x00
-	btfsc	UEP0, EPSTALL, BANKED
-	movlw	0x01
-	movwf	POSTINC0
-	clrf	INDF0
-	banksel	BD1CNT
-	movlw	0x02
-	movwf	BD1CNT, BANKED		; set byte count to 2
-	bra	sendAnswer
-
-getEndpointStatusInConfiguredStateRequest
-	banksel	BD1ADRH
-	movf	BD1ADRH, W, BANKED	; put EP0 IN buffer pointer...
-	movwf	FSR0H, ACCESS
-	movf	BD1ADRL, W, BANKED
-	movwf	FSR0L, ACCESS		; ...into FSR0
-	movlw	high UEP0		; put UEP0 address...
-	movwf	FSR1H, ACCESS
-	movlw	low UEP0
-	movwf	FSR1L, ACCESS		; ...into FSR1
-	banksel	USB_buffer_data+wIndex
-	movf	USB_buffer_data+wIndex, W, BANKED  ; get EP and...
-	andlw	0x0F			; ...strip off direction bit
-	btfsc	PLUSW1, EPOUTEN, ACCESS
-	bra	okToReply
-	btfss	PLUSW1, EPINEN, ACCESS
-	bra	standardRequestsError	; neither EPOUTEN nor EPINEN are set
-okToReply
-	; send back the state of the EPSTALL bit + 0 byte
-	movlw	0x01
-	btfss	PLUSW1, EPSTALL, ACCESS
-	clrw
-	movwf	POSTINC0
-	clrf	INDF0
-	banksel	BD1CNT
-	movlw	0x02
-	movwf	BD1CNT, BANKED		; set byte count to 2
-	bra	sendAnswer
-
-setFeatureRequest
-	movf	USB_buffer_data+bmRequestType, W, BANKED
-	andlw	0x1F				; extract request recipient bits
-	dispatchRequest	RECIPIENT_DEVICE, setDeviceFeatureRequest
-	dispatchRequest	RECIPIENT_ENDPOINT, setEndpointFeatureRequest
-	bra	standardRequestsError
-
-setDeviceFeatureRequest
-	movf	USB_buffer_data+wValue, W, BANKED
-	sublw	WAKEUP_REQUEST
-	btfss	STATUS, Z, ACCESS	; skip if request is wakeup
-	bra	standardRequestsError	; dunno what to do with this request
-	bcf	USB_device_status, 1, BANKED
-	movf	USB_buffer_data+bRequest, W, BANKED
-	sublw	CLEAR_FEATURE
-	btfss	STATUS, Z		; skip if == CLEAR_FEATURE
-	bsf	USB_device_status, 1, BANKED
-	bra	sendAnswerOk
-
-setEndpointFeatureRequest
-	movf		USB_USWSTAT, W, BANKED
-	dispatchRequest	ADDRESS_STATE, setEndpointFeatureInAddressStateRequest
-	dispatchRequest	CONFIG_STATE, setEndpointFeatureInConfiguredStateRequest
-	bra	standardRequestsError
-
-setEndpointFeatureInAddressStateRequest
-	movf	USB_buffer_data+wIndex, W, BANKED ; get EP
-	andlw	0x0F			; strip off direction bit
-	bnz	standardRequestsError	; not zero
-	banksel	UEP0
-	bcf	UEP0, EPSTALL, BANKED
-	banksel	USB_buffer_data+bRequest
-	movf	USB_buffer_data+bRequest, W, BANKED
-	sublw	CLEAR_FEATURE
-	banksel	UEP0
-	btfss	STATUS, Z, ACCESS	; skip if == CLEAR_FEATURE
-	bsf	UEP0, EPSTALL, BANKED
-	banksel	USB_buffer_data
-	bra	sendAnswerOk
-
-setEndpointFeatureInConfiguredStateRequest
-	movlw	high UEP0		; put UEP0 address...
-	movwf	FSR0H, ACCESS
-	movlw	low UEP0
-	movwf	FSR0L, ACCESS		; ...into FSR0
-	movf	USB_buffer_data+wIndex, W, BANKED	; get EP
-	andlw	0x0F			; strip off direction bit
-	addwf	FSR0L, F, ACCESS	; add EP number to FSR0
-	btfsc	STATUS, C, ACCESS
-	incf	FSR0H, F, ACCESS
-	btfsc	INDF0, EPOUTEN, ACCESS
-	bra	continueAnswerConfigState
-	btfss	INDF0, EPINEN, ACCESS
-	bra	standardRequestsError	; neither EPOUTEN nor EPINEN are set: error
-continueAnswerConfigState
-	bcf	INDF0, EPSTALL, ACCESS
-	movf	USB_buffer_data+bRequest, W, BANKED
-	sublw	CLEAR_FEATURE
-	btfss	STATUS, Z, ACCESS	; skip if == CLEAR_FEATURE
-	bsf	INDF0, EPSTALL, ACCESS
 	bra	sendAnswerOk
 
 getDescriptorRequest
@@ -813,7 +612,6 @@ sendDescriptorRequestAnswer
 
 SendDescriptorPacket
 	banksel	USB_bytes_left
-	
 	movlw	0x08
 	subwf	USB_bytes_left,W,BANKED
 	btfsc	STATUS,C,ACCESS
