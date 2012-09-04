@@ -3,6 +3,9 @@ PicUsbBootloader
 
 USB Bootloader for PICs
 
+NOTE! Does not work yet, communication via USB kinda works, but no actual
+bootloader functionality has been implemented yet.
+
 ## Building
 
 To build: Run make in the top level directory like this:
