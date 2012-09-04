@@ -138,18 +138,21 @@ db	0x00, NUM_CONFIGURATIONS	; iSerialNumber (none), bNumConfigurations
 
 Configuration0
 db	0x09, CONFIGURATION		; bLength, bDescriptorType
-db	0x19, 0x00			; low(wTotalLength), high(wTotalLength)
+db	0x20, 0x00			; low(wTotalLength), high(wTotalLength)
 db	NUM_INTERFACES, 0x01		; bNumInterfaces, bConfigurationValue
 db	0x00, 0x80			; iConfiguration (none), bmAttributes
 db	0x32, 0x09			; bMaxPower (100 mA), interface1: blength
 db	INTERFACE, 0x00			; INTERFACE, 0x00
-db	0x00, 0x01			; bAlternateSetting, bNumEndpoints (excluding EP0)
+db	0x00, 0x02			; bAlternateSetting, bNumEndpoints (excluding EP0)
 db	0xFF, 0x00			; bInterfaceClass (vendor specific), bInterfaceSubClass (no subclass)
 db	0x00, 0x00			; bInterfaceProtocol (none), iInterface (none)
-db	0x07, ENDPOINT			; EP0: bLength, bDescriptorType
-db	0x81, 0x03			; bEndpointAddress (EP1 IN), bmAttributes (Interrupt)
-db	0x08, 0x00			; low(wMaxPacketSize), high(wMaxPacketSize)
-db	0x0A				; bInterval (10 ms)
+db	0x07, ENDPOINT			; EP01_IN: bLength, bDescriptorType
+db	0x81, 0x02			; bEndpointAddress (EP1 IN), bmAttributes (Bulk)
+db	0x40, 0x00			; low(wMaxPacketSize), high(wMaxPacketSize)
+db	0x00, 0x07			; bInterval (0), EP01_OUT: bLength
+db	ENDPOINT, 0x01			; bDescriptorType, bEndpointAddress (EP1 OUT)
+db	0x02, 0x40			; bmAttributes (Bulk), low(wMaxPacketSize)
+db	0x00, 0x00			; high(wMaxPacketSize), bInterval (0)
 
 ConfigurationsOffsetsTable
 db	Configuration0 - Descriptor_begin

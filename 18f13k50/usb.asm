@@ -53,9 +53,10 @@ ADDRESS_STATE		EQU	0x02
 CONFIG_STATE		EQU	0x03
 
 ; endpoint types
-ENDPT_IN		EQU	0x12
-ENDPT_OUT		EQU	0x14
-ENDPT_CONTROL		EQU	0x16
+ENDPT_IN		EQU	(1<<EPHSHK) | (1<<EPINEN)
+ENDPT_OUT		EQU	(1<<EPHSHK) | (1<<EPOUTEN)
+ENDPT_INOUT		EQU	(1<<EPHSHK) | (1<<EPCONDIS) | (1<<EPOUTEN) | (1<<EPINEN)
+ENDPT_CONTROL		EQU	(1<<EPHSHK) | (1<<EPOUTEN) | (1<<EPINEN)
 
 ; tokens
 TOKEN_OUT		EQU	(0x01<<2)
@@ -64,6 +65,8 @@ TOKEN_SETUP		EQU	(0x0D<<2)
 
 ; usb addresses
 USBMEMORY		EQU	0x0200
+; USB buffer table
+; buffer 0 and 1 are used for EP0 IN and OUT
 BD0STAT			EQU	( USBMEMORY + 0x00 )
 BD0CNT			EQU	( USBMEMORY + 0x01 )
 BD0ADRL			EQU	( USBMEMORY + 0x02 )
@@ -72,12 +75,22 @@ BD1STAT			EQU	( USBMEMORY + 0x04 )
 BD1CNT			EQU	( USBMEMORY + 0x05 )
 BD1ADRL			EQU	( USBMEMORY + 0x06 )
 BD1ADRH			EQU	( USBMEMORY + 0x07 )
+; buffer 2 and 3 are used for EP1 IN and OUT
+BD2STAT			EQU	( USBMEMORY + 0x08 )
+BD2CNT			EQU	( USBMEMORY + 0x09 )
+BD2ADRL			EQU	( USBMEMORY + 0x0A )
+BD2ADRH			EQU	( USBMEMORY + 0x0B )
+BD3STAT			EQU	( USBMEMORY + 0x0C )
+BD3CNT			EQU	( USBMEMORY + 0x0D )
+BD3ADRL			EQU	( USBMEMORY + 0x0E )
+BD3ADRH			EQU	( USBMEMORY + 0x0F )
 ; Register location after last buffer descriptor register
 USB_Buffer		EQU	( USBMEMORY + 0x0080 )
 
 ; BDSTAT bits
-UOWN                   EQU     7
-DTSEN                  EQU     3
+UOWN			EQU     7
+DTS			EQU	6
+DTSEN			EQU     3
 
 ; offsets from the beginning of the Buffer Descriptor
 ADDRESSL		EQU	0x02
@@ -232,24 +245,25 @@ resetUSB
 	clrf		UEP7, BANKED
 
 	banksel		BD0CNT
-	; set up endpoint EP0
+	; set up endpoint EP0 OUT
 	movlw		0x08
 	movwf		BD0CNT, BANKED
-	movlw		low USB_Buffer		; EP0 OUT gets a buffer...
+	movlw		low USB_Buffer
 	movwf		BD0ADRL, BANKED
 	movlw		high USB_Buffer
 	movwf		BD0ADRH, BANKED		; ...set up its address
 	clrf		BD0STAT, BANKED
 	bsf		BD0STAT, UOWN, BANKED	; set UOWN: USB can write
-	; set up endpoint EP1
+	; set up endpoint EP0 IN
 	movlw		0x08
 	movwf		BD1CNT, BANKED
-	movlw		low (USB_Buffer+0x08)	; EP1 IN gets a buffer...
+	movlw		low (USB_Buffer+0x08)
 	movwf		BD1ADRL, BANKED
 	movlw		high (USB_Buffer+0x08)
 	movwf		BD1ADRH, BANKED		; ...set up its address
 	clrf		BD1STAT, BANKED
 	bsf		BD1STAT, DTSEN, BANKED	; enable Data Toggle Synchronization
+
 	banksel		UADDR
 	clrf		UADDR, BANKED		; set USB Address to 0
 	clrf		UIR, ACCESS		; clear all the USB interrupt flags
@@ -323,8 +337,8 @@ processSetupToken
 	banksel	BD0CNT
 	movlw	0x08
 	movwf	BD0CNT, BANKED		; reset the byte count
-	movwf	BD1STAT, BANKED		; return the in buffer to us
-					; (dequeue any pending requests)
+	clrf	BD1STAT, BANKED		; return the in buffer to us (dequeue any pending requests)
+	bsf	BD1STAT, DTSEN, BANKED
 	banksel	USB_buffer_data+bmRequestType
 	movf	USB_buffer_data+bmRequestType,W,BANKED
 	sublw	HID_SET_REPORT
@@ -385,19 +399,30 @@ setConfiguredState
 	; we always set up the same configuration
 	movlw	CONFIG_STATE
 	movwf	USB_USWSTAT, BANKED
-	movlw	0x08
-	banksel	BD1CNT+0x08
-	movwf	BD1CNT+0x08, BANKED	; set EP1 IN byte count to 8 
+
+	; set up endpoint EP1 OUT
+	movlw	0x40
+	movwf	BD2CNT, BANKED
 	movlw	low (USB_Buffer+0x10)
-	movwf	BD1ADRL+0x08, BANKED	; set EP1 IN buffer address
+	movwf	BD2ADRL, BANKED
 	movlw	high (USB_Buffer+0x10)
-	movwf	BD1ADRH+0x08, BANKED
-	movlw	0x48
-	movwf	BD1STAT+0x08, BANKED	; clear UOWN bit (PIC can write EP1 IN buffer)
-	movlw	ENDPT_IN
+	movwf	BD2ADRH, BANKED		; ...set up its address
+	clrf	BD2STAT, BANKED
+	bsf	BD2STAT, UOWN, BANKED	; set UOWN: USB can write
+	; set up endpoint EP1 IN
+	movlw	0x40
+	movwf	BD3CNT, BANKED
+	movlw	low (USB_Buffer+0x50)
+	movwf	BD3ADRL, BANKED
+	movlw	high (USB_Buffer+0x50)
+	movwf	BD3ADRH, BANKED		; ...set up its address
+	clrf	BD3STAT, BANKED
+	bsf	BD3STAT, DTS, BANKED	; data1 packet
+	bsf	BD3STAT, DTSEN, BANKED	; enable Data Toggle Synchronization
+
+	movlw	(1<<EPHSHK) | (1<<EPCONDIS) | (1<<EPOUTEN) | (1<<EPINEN)
 	banksel	UEP1
-	movwf	UEP1, BANKED		; enable EP1 for interrupt in transfers
-	banksel	BD1CNT+0x08
+	movwf	UEP1, BANKED		; enable EP1 for bulk in and out transfers
 	bra	sendAnswerOk
 
 getConfigurationRequest
@@ -470,7 +495,7 @@ classRequests
 
 classGetReport				; report current LED_state
 	banksel	BD1ADRH
-	movf	BD1ADRH, W, BANKED	; put EP0 IN buffer pointer...
+	movf	BD1ADRH, W, BANKED	; put EP1 IN buffer pointer...
 	movwf	FSR0H, ACCESS
 	movf	BD1ADRL, W, BANKED
 	movwf	FSR0L, ACCESS		; ...into FSR0
