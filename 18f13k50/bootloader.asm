@@ -37,13 +37,13 @@
 
 ;**************************************************************
 ; local data
-bootLoader_data	UDATA
-state
-inSize
+bootLoader_udata	UDATA
+state	RES	1
+inSize	RES	1
 
 ; local temp data
-bootLoader_tmp	UDATA_OVR
-loop_t
+			UDATA_OVR
+loop_t	RES	1
 
 ;**************************************************************
 ; Code section
@@ -59,6 +59,7 @@ bootLoaderMain
 	tstfsz	state, BANKED
 	bra	sendingAnswer
 	call	usbEP1OUTgetByteCount
+	banksel	inSize
 	movwf	inSize,BANKED
 	movf	inSize,F,BANKED		; sets status flags
 	bz	endBootLoaderMain	; no message arrived, we are done
@@ -75,8 +76,8 @@ bootLoaderMain
 	banksel	loop_t
 	movwf	loop_t, BANKED
 copyLoop
-	movf	POSTINC0, W
-	movwf	POSTINC1
+	movf	POSTINC0, W, ACCESS
+	movwf	POSTINC1, ACCESS
 	decfsz	loop_t, BANKED
 	bra	copyLoop
 

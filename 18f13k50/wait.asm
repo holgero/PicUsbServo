@@ -22,7 +22,7 @@
 	GLOBAL	waitSeconds
 
 ;**************************************************************
-; local data
+; local temporary data
 			UDATA_OVR
 waitSecondsValue	RES 1
 waitMSeconds		RES 1

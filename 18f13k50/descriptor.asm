@@ -46,7 +46,7 @@ nextDescriptorIdx	RES	1
 
 ;**************************************************************
 ; local temp data
-descriptor_udata_ovr	UDATA_OVR
+			UDATA_OVR
 length_tmp		RES	1
 
 ;**************************************************************

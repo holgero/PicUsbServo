@@ -42,6 +42,9 @@
 	global	usbEP1INisBusy
 	global	usbEP1INsetBytesInit
 	global	usbEP1INsend
+;**************************************************************
+; exported variables
+	global	USB_ctrl_state
 
 ;**************************************************************
 ; imported subroutines
@@ -160,7 +163,7 @@ USB_packet_length	RES	1
 USB_USTAT		RES	1
 USB_USWSTAT		RES	1
 USB_received		RES	1
-LED_states		RES	5
+USB_ctrl_state		RES	5
 
 ;**************************************************************
 ; code section
@@ -358,9 +361,9 @@ setupTokenAllRequestTypes
 	bcf	UCON, PKTDIS, ACCESS	; assuming there is nothing to dequeue, clear the packet disable bit
 	banksel	USB_dev_req
 	movlw	NO_REQUEST
-	movwf	USB_dev_req, BANKED			; clear the device request in process
+	movwf	USB_dev_req, BANKED		; clear the device request in process
 	movf	USB_buffer_data+bmRequestType, W, BANKED
-	andlw	0x60					; extract request type bits
+	andlw	0x60				; extract request type bits
 	dispatchRequest	STANDARD, standardRequests
 	dispatchRequest	CLASS, classRequests
 	bra	standardRequestsError
@@ -387,10 +390,11 @@ sendAnswer
 
 setConfigurationRequest
 	movf	USB_buffer_data+wValue,W,BANKED
-	addlw	0xff				; check is zero based: 0..NUM_CONFIG-1 are valid
-	call	getConfigurationDescriptor	; see if requested configuration is valid
+	addlw	0xff		; check is zero based: 0..NUM_CONFIG-1 are valid
+	call	getConfigurationDescriptor ; see if requested configuration is valid
 	btfsc	STATUS,Z,ACCESS
 	bra	standardRequestsError	; nope, total length was Zero: invalid
+	banksel	USB_buffer_data+wValue
 	movf	USB_buffer_data+wValue, W, BANKED
 	movwf	USB_curr_config, BANKED
 	btfss	STATUS,Z,ACCESS		; skip if value is zero
@@ -505,16 +509,16 @@ classGetReport				; report current LED_state
 	movwf	FSR0H, ACCESS
 	movf	BD1ADRL, W, BANKED
 	movwf	FSR0L, ACCESS		; ...into FSR0
-	banksel LED_states
-	movf	LED_states, W, BANKED	; red led
+	banksel USB_ctrl_state
+	movf	USB_ctrl_state, W, BANKED
 	movwf	POSTINC0, ACCESS
-	movf	LED_states+1, W, BANKED	; yellow led
+	movf	USB_ctrl_state+1, W, BANKED
 	movwf	POSTINC0, ACCESS
-	movf	LED_states+2, W, BANKED	; green led
+	movf	USB_ctrl_state+2, W, BANKED
 	movwf	POSTINC0, ACCESS
-	movf	LED_states+3, W, BANKED	; blue led
+	movf	USB_ctrl_state+3, W, BANKED
 	movwf	POSTINC0, ACCESS
-	movf	LED_states+4, W, BANKED	; white led
+	movf	USB_ctrl_state+4, W, BANKED
 	movwf	INDF0, ACCESS		; ...to EP0 IN buffer
 	banksel	BD1CNT
 	movlw	0x05
@@ -613,18 +617,18 @@ setReport
 	movwf	FSR0H, ACCESS
 	movf	BD0ADRL, W, BANKED
 	movwf	FSR0L, ACCESS		; ...into FSR0
-	; get five bytes in the buffer and copy to LED_states
-	banksel	LED_states
+	; get five bytes in the buffer and copy to USB_ctrl_state
+	banksel	USB_ctrl_state
 	movf	POSTINC0, W, ACCESS
-	movwf	LED_states, BANKED
+	movwf	USB_ctrl_state, BANKED
 	movf	POSTINC0, W, ACCESS
-	movwf	LED_states+1, BANKED
+	movwf	USB_ctrl_state+1, BANKED
 	movf	POSTINC0, W, ACCESS
-	movwf	LED_states+2, BANKED
+	movwf	USB_ctrl_state+2, BANKED
 	movf	POSTINC0, W, ACCESS
-	movwf	LED_states+3, BANKED
+	movwf	USB_ctrl_state+3, BANKED
 	movf	INDF0, W, ACCESS
-	movwf	LED_states+4, BANKED
+	movwf	USB_ctrl_state+4, BANKED
 	bsf	USB_received,0,BANKED
 	return
 
@@ -696,12 +700,12 @@ WaitConfiguredUSB
 	btfss	STATUS,Z,ACCESS
 	bra	WaitConfiguredUSB	; ...until the host configures the peripheral
 
-	banksel	LED_states
-	clrf	LED_states, BANKED
-	clrf	LED_states+1, BANKED
-	clrf	LED_states+2, BANKED
-	clrf	LED_states+3, BANKED
-	clrf	LED_states+4, BANKED
+	banksel	USB_ctrl_state
+	clrf	USB_ctrl_state, BANKED
+	clrf	USB_ctrl_state+1, BANKED
+	clrf	USB_ctrl_state+2, BANKED
+	clrf	USB_ctrl_state+3, BANKED
+	clrf	USB_ctrl_state+4, BANKED
 	return
 
 ; check if something arrived on EP1 OUT
@@ -743,8 +747,9 @@ usbEP1INsend
 	movwf	BD3CNT, BANKED
 	movf	BD3STAT, W, BANKED
 	xorlw	( 1 << DTS )		; toggle DATA0/1
+	andlw	( 1 << DTS )		; clear PID bits
 	iorlw	( 1 << UOWN ) | ( 1 << DTSEN )
-	movf 	BD3STAT, BANKED
+	movwf 	BD3STAT, BANKED
 	return
 
 ; enables access to the received bytes via FSR0

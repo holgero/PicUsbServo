@@ -27,6 +27,9 @@
 ; imported subroutines
 ; wait.asm
 	extern	waitMilliSeconds
+;**************************************************************
+; imported variables
+	extern	USB_ctrl_state
 
 ;**************************************************************
 ; debugled code
@@ -54,13 +57,25 @@ blinkLed	macro	idx
 		endm
 
 blinkRedLed
-;	blinkLed 0
+	banksel	USB_ctrl_state
+	movf	USB_ctrl_state, F, BANKED
+	bz	endBlink
+	blinkLed 0
+endBlink
 	return
+
 blinkYellowLed
-;	blinkLed 1
-	return
+	banksel	USB_ctrl_state
+	movf	USB_ctrl_state, F, BANKED
+	bz	endBlink
+	blinkLed 1
+	bra	endBlink
+
 blinkGreenLed
-;	blinkLed 2
-	return
+	banksel	USB_ctrl_state
+	movf	USB_ctrl_state, F, BANKED
+	bz	endBlink
+	blinkLed 2
+	bra	endBlink
 
 	END
