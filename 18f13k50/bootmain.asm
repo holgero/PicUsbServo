@@ -1,5 +1,5 @@
 ; USB bootloader for PICs
-; boot routine and configuration
+; initialization and configuration
 ; Copyright (C) 2012 Holger Oehm
 ;
 ; Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,6 +46,12 @@
 	extern	InitUSB
 	extern	WaitConfiguredUSB
 	extern	ServiceUSB
+; bootloader.asm
+	extern	initBootLoader
+	extern	bootLoaderMain
+; debugled.asm
+	extern	initDebugLeds
+	extern	blinkRedLed
 
 ;**************************************************************
 ; local definitions
@@ -77,8 +83,10 @@ interruptLo		ORG	0x0018
 
 ;**************************************************************
 ; bootmain code
+boot_main		CODE	0x001C
 
 runApplication
+	; restore values at reset
 	movlw	0xff
 	movwf	WPUB, ACCESS
 	movwf	WPUA, ACCESS
@@ -88,9 +96,18 @@ runApplication
 bootLoaderActive
 	call	InitUSB			; initialize the USB module
 	call	WaitConfiguredUSB
+	call	initBootLoader
+
+; debug code
+	call	initDebugLeds
+; debug code end
 
 bootMainLoop
-	call	ServiceUSB
+; debug code
+	call	blinkRedLed
+; debug code end
+	call	ServiceUSB		; the usual USB stuff, services EP0
+	call	bootLoaderMain		; services EP1
 	goto	bootMainLoop
 
 			END

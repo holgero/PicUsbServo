@@ -35,6 +35,13 @@
 	global	InitUSB
 	global	ServiceUSB
 	global	WaitConfiguredUSB
+; EP1 routines
+	global	usbEP1OUTgetByteCount
+	global	usbEP1OUTgetBytesInit
+	global	usbEP1OUTreceive
+	global	usbEP1INisBusy
+	global	usbEP1INsetBytesInit
+	global	usbEP1INsend
 
 ;**************************************************************
 ; imported subroutines
@@ -124,11 +131,6 @@ SET_REPORT		EQU	0x09
 SET_IDLE		EQU	0x0A
 SET_PROTOCOL		EQU	0x0B
 HID_SET_REPORT		EQU	0x21
-
-; endpoints
-EP0			EQU	0x00 << 3
-EP1			EQU	0x01 << 3
-EP2			EQU	0x02 << 3
 
 ; request targets
 STANDARD		EQU	0x00 << 5
@@ -290,17 +292,19 @@ processUSBTransaction
 	movlw		high( USBMEMORY )
 	movwf		FSR0H, ACCESS
 	movf		USTAT, W, ACCESS
-	andlw		0x7C				; mask out bits 0, 1, and 7 of USTAT
-	; result is 0x00 for endpoint 0 and 0x08 for endpoint 1
+	andlw		0x7C		; mask out bits 0, 1, and 7 of USTAT
+	; leaves bits<6:2>:  ENDP<2:0> and DIR (IN/OUT)
+	; result is 0x00/0x04 for endpoint 0 OUT/IN
+	;       and 0x08/0x0c for endpoint 1 OUT/IN
 	movwf		FSR0L, ACCESS
 	banksel		USB_buffer_desc
-	movf		POSTINC0, W
+	movf		POSTINC0, W, ACCESS
 	movwf		USB_buffer_desc, BANKED
-	movf		POSTINC0, W
+	movf		POSTINC0, W, ACCESS
 	movwf		USB_buffer_desc+1, BANKED
-	movf		POSTINC0, W
+	movf		POSTINC0, W, ACCESS
 	movwf		USB_buffer_desc+2, BANKED
-	movf		POSTINC0, W
+	movf		POSTINC0, W, ACCESS
 	movwf		USB_buffer_desc+3, BANKED
 	movf		USTAT, W, ACCESS
 	movwf		USB_USTAT, BANKED		; save the USB status register
@@ -318,21 +322,21 @@ processSetupToken
 	movwf	FSR0H, ACCESS
 	movf	USB_buffer_desc+ADDRESSL, W, BANKED
 	movwf	FSR0L, ACCESS
-	movf	POSTINC0, W
+	movf	POSTINC0, W, ACCESS
 	movwf	USB_buffer_data, BANKED
-	movf	POSTINC0, W
+	movf	POSTINC0, W, ACCESS
 	movwf	USB_buffer_data+1, BANKED
-	movf	POSTINC0, W
+	movf	POSTINC0, W, ACCESS
 	movwf	USB_buffer_data+2, BANKED
-	movf	POSTINC0, W
+	movf	POSTINC0, W, ACCESS
 	movwf	USB_buffer_data+3, BANKED
-	movf	POSTINC0, W
+	movf	POSTINC0, W, ACCESS
 	movwf	USB_buffer_data+4, BANKED
-	movf	POSTINC0, W
+	movf	POSTINC0, W, ACCESS
 	movwf	USB_buffer_data+5, BANKED
-	movf	POSTINC0, W
+	movf	POSTINC0, W, ACCESS
 	movwf	USB_buffer_data+6, BANKED
-	movf	POSTINC0, W
+	movf	POSTINC0, W, ACCESS
 	movwf	USB_buffer_data+7, BANKED
 	banksel	BD0CNT
 	movlw	0x08
@@ -400,27 +404,29 @@ setConfiguredState
 	movlw	CONFIG_STATE
 	movwf	USB_USWSTAT, BANKED
 
-	; set up endpoint EP1 OUT
-	movlw	0x40
+	; set up endpoint EP1 OUT for receiving
+	banksel	BD2CNT
+	movlw	0x40			; 64 bytes buffer size
 	movwf	BD2CNT, BANKED
 	movlw	low (USB_Buffer+0x10)
 	movwf	BD2ADRL, BANKED
 	movlw	high (USB_Buffer+0x10)
-	movwf	BD2ADRH, BANKED		; ...set up its address
-	clrf	BD2STAT, BANKED
-	bsf	BD2STAT, UOWN, BANKED	; set UOWN: USB can write
-	; set up endpoint EP1 IN
-	movlw	0x40
-	movwf	BD3CNT, BANKED
+	movwf	BD2ADRH, BANKED
+	; and start receiving on it
+	movlw	( 1 << DTS )
+	movwf	BD2STAT, BANKED		; prep DTS, so the transfer starts with DATA0
+	call	usbEP1OUTreceive	; toggles DTS
+
+	; set up endpoint EP1 IN for sending
+	banksel	BD3CNT
 	movlw	low (USB_Buffer+0x50)
 	movwf	BD3ADRL, BANKED
 	movlw	high (USB_Buffer+0x50)
-	movwf	BD3ADRH, BANKED		; ...set up its address
-	clrf	BD3STAT, BANKED
-	bsf	BD3STAT, DTS, BANKED	; data1 packet
-	bsf	BD3STAT, DTSEN, BANKED	; enable Data Toggle Synchronization
+	movwf	BD3ADRH, BANKED
+	movlw	( 1 << DTS )
+	movwf	BD3STAT, BANKED		; prep DTS, so the transfer starts with DATA0
 
-	movlw	(1<<EPHSHK) | (1<<EPCONDIS) | (1<<EPOUTEN) | (1<<EPINEN)
+	movlw	ENDPT_INOUT
 	banksel	UEP1
 	movwf	UEP1, BANKED		; enable EP1 for bulk in and out transfers
 	bra	sendAnswerOk
@@ -433,7 +439,7 @@ getConfigurationRequest
 	movwf	FSR0L, ACCESS
 	banksel	USB_curr_config
 	movf	USB_curr_config, W, BANKED
-	movwf	INDF0			; copy current device configuration to EP0 IN buffer
+	movwf	INDF0, ACCESS	; copy current device configuration to EP0 IN buffer
 	banksel	BD1CNT
 	movlw	0x01
 	movwf	BD1CNT, BANKED		; set EP0 IN byte count to 1
@@ -501,15 +507,15 @@ classGetReport				; report current LED_state
 	movwf	FSR0L, ACCESS		; ...into FSR0
 	banksel LED_states
 	movf	LED_states, W, BANKED	; red led
-	movwf	POSTINC0
+	movwf	POSTINC0, ACCESS
 	movf	LED_states+1, W, BANKED	; yellow led
-	movwf	POSTINC0
+	movwf	POSTINC0, ACCESS
 	movf	LED_states+2, W, BANKED	; green led
-	movwf	POSTINC0
+	movwf	POSTINC0, ACCESS
 	movf	LED_states+3, W, BANKED	; blue led
-	movwf	POSTINC0
+	movwf	POSTINC0, ACCESS
 	movf	LED_states+4, W, BANKED	; white led
-	movwf	INDF0			; ...to EP0 IN buffer
+	movwf	INDF0, ACCESS		; ...to EP0 IN buffer
 	banksel	BD1CNT
 	movlw	0x05
 	movwf	BD1CNT, BANKED		; set EP0 IN buffer byte count
@@ -562,8 +568,7 @@ processInToken
 	banksel	USB_USTAT
 	movf	USB_USTAT, W, BANKED
 	andlw	0x18			; extract the EP bits
-	sublw	EP0
-	btfss	STATUS, Z, ACCESS	; skip if it is EP0
+	btfss	STATUS, Z, ACCESS	; only process EP0
 	return
 	movf	USB_dev_req, W, BANKED
 	sublw	GET_DESCRIPTOR
@@ -587,8 +592,7 @@ processOutToken
 	banksel	USB_USTAT
 	movf	USB_USTAT, W, BANKED
 	andlw	0x18			; extract the EP bits
-	sublw	EP0
-	btfss	STATUS, Z, ACCESS	; skip if it is EP0
+	btfss	STATUS, Z, ACCESS	; only process EP0
 	return
 	movf	USB_dev_req, W, BANKED
 	sublw	SET_REPORT		; is the request SET_REPORT?
@@ -611,15 +615,15 @@ setReport
 	movwf	FSR0L, ACCESS		; ...into FSR0
 	; get five bytes in the buffer and copy to LED_states
 	banksel	LED_states
-	movf	POSTINC0, W	
+	movf	POSTINC0, W, ACCESS
 	movwf	LED_states, BANKED
-	movf	POSTINC0, W	
+	movf	POSTINC0, W, ACCESS
 	movwf	LED_states+1, BANKED
-	movf	POSTINC0, W	
+	movf	POSTINC0, W, ACCESS
 	movwf	LED_states+2, BANKED
-	movf	POSTINC0, W	
+	movf	POSTINC0, W, ACCESS
 	movwf	LED_states+3, BANKED
-	movf	INDF0, W	
+	movf	INDF0, W, ACCESS
 	movwf	LED_states+4, BANKED
 	bsf	USB_received,0,BANKED
 	return
@@ -655,11 +659,11 @@ shortDescriptor
 	subwf	USB_bytes_left, F, BANKED
 	movwf	USB_packet_length, BANKED
 	banksel	BD1CNT
-	movwf	BD1CNT, BANKED			; set EP0 IN byte count with packet size
-	movf	BD1ADRH, W, BANKED		; put EP0 IN buffer pointer...
+	movwf	BD1CNT, BANKED		; set EP0 IN byte count with packet size
+	movf	BD1ADRH, W, BANKED	; put EP0 IN buffer pointer...
 	movwf	FSR0H, ACCESS
 	movf	BD1ADRL, W, BANKED
-	movwf	FSR0L, ACCESS			; ...into FSR0
+	movwf	FSR0L, ACCESS		; ...into FSR0
 	banksel	USB_loop_index
 
 	movlw	1
@@ -698,6 +702,69 @@ WaitConfiguredUSB
 	clrf	LED_states+2, BANKED
 	clrf	LED_states+3, BANKED
 	clrf	LED_states+4, BANKED
+	return
+
+; check if something arrived on EP1 OUT
+; changes bank and W
+; returns message size in W, return value 0 means no message received
+usbEP1OUTgetByteCount
+	banksel	BD2STAT
+	btfsc	BD2STAT,UOWN,BANKED	; UOWN clear: message arrived
+	retlw	0x00			; no message: return with zero length
+	movf	BD2CNT,W,BANKED
+	return
+
+; enable receiving on EP1 OUT
+; changes bank and W
+usbEP1OUTreceive
+	banksel	BD2CNT
+	movlw	0x40			; 64 bytes buffer size
+	movwf	BD2CNT, BANKED
+	movf	BD2STAT, W, BANKED
+	xorlw	( 1 << DTS )		; toggle DATA0/1
+	iorlw	( 1 << UOWN ) | ( 1 << DTSEN )
+	movwf	BD2STAT, BANKED
+	return
+
+; check if we are currently sending on EP1 IN
+; changes bank and W
+; zero: not sending
+usbEP1INisBusy
+	banksel	BD3STAT
+	movf	BD3STAT, W, BANKED
+	andlw	( 1 << UOWN )
+	return
+
+; enable sending on EP1 IN
+; changes bank and W
+; in W: bytes to send
+usbEP1INsend
+	banksel	BD3CNT
+	movwf	BD3CNT, BANKED
+	movf	BD3STAT, W, BANKED
+	xorlw	( 1 << DTS )		; toggle DATA0/1
+	iorlw	( 1 << UOWN ) | ( 1 << DTSEN )
+	movf 	BD3STAT, BANKED
+	return
+
+; enables access to the received bytes via FSR0
+; changes bank, W and FSR0
+usbEP1OUTgetBytesInit
+	banksel	BD2ADRH
+	movf	BD2ADRH, W, BANKED
+	movwf	FSR0H, ACCESS
+	movf	BD2ADRL, W, BANKED
+	movwf	FSR0L, ACCESS
+	return
+
+; enables access to the send buffer via FSR1
+; changes bank, W and FSR1
+usbEP1INsetBytesInit
+	banksel	BD3ADRH
+	movf	BD3ADRH, W, BANKED
+	movwf	FSR1H, ACCESS
+	movf	BD3ADRL, W, BANKED
+	movwf	FSR1L, ACCESS
 	return
 
 			END
