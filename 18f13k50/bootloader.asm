@@ -40,6 +40,7 @@
 bootLoader_udata	UDATA
 state	RES	1
 inSize	RES	1
+outSize	RES	1
 
 ; local temp data
 			UDATA_OVR
@@ -68,21 +69,18 @@ bootLoaderMain
 	call	blinkYellowLed
 ; debug code end
 
-; first step: echo everything that comes in on EP1 OUT to EP1 IN
-	call	usbEP1OUTgetBytesInit
-	call	usbEP1INsetBytesInit
-	banksel	inSize
-	movf	inSize,W,BANKED
-	banksel	loop_t
-	movwf	loop_t, BANKED
-copyLoop
-	movf	POSTINC0, W, ACCESS
-	movwf	POSTINC1, ACCESS
-	decfsz	loop_t, BANKED
-	bra	copyLoop
+	call	usbEP1OUTgetBytesInit	; set FSR0 to receive buffer
+	call	usbEP1INsetBytesInit	; set FSR1 to send buffer
+	movf	INDF0, W, ACCESS	; first byte is command
+	bz	readVersion		; 0: read version
+	addlw	0xff
+	bz	readFlash		; 1: read flash
 
-	banksel	inSize
-	movf	inSize,W,BANKED
+	call	echoBytes		; unknown command, for now just echo 
+
+commandExecuted
+	banksel	outSize
+	movf	outSize,W,BANKED
 	call	usbEP1INsend		; send answer on EP1 IN
 	movlw	0x01
 	banksel	state
@@ -100,6 +98,58 @@ sendingAnswer
 	call	usbEP1OUTreceive	; activate EP1 OUT again (next receive)
 
 endBootLoaderMain
+	return
+
+readFlash
+	call	echoBytes		; we send back the structure
+	call	usbEP1OUTgetBytesInit	; set FSR0 to receive buffer again
+	movf	POSTINC0, W, ACCESS	; command (=1)
+	movf	POSTINC0, W, ACCESS	; len
+	banksel	inSize
+	addwf	inSize,W,BANKED		; add size of structure
+	movwf	outSize,BANKED		; store result size
+	banksel	loop_t
+	movwf	loop_t,BANKED		; store also as loop counter
+	; set table read pointer to address
+	movf	POSTINC0, W, ACCESS	; addressL
+	movwf	TBLPTRL, ACCESS
+	movf	POSTINC0, W, ACCESS	; addressH
+	movwf	TBLPTRH, ACCESS
+	movf	POSTINC0, W, ACCESS	; addressU
+	movwf	TBLPTRU, ACCESS
+
+copyFlashLoop
+	tblrd*+
+	movf	TABLAT, W, ACCESS
+	movwf	POSTINC1, ACCESS
+	decfsz	loop_t, BANKED
+	bra	copyFlashLoop
+	bra	commandExecuted
+
+readVersion
+	clrf	POSTINC1, ACCESS	; 0
+	clrf	POSTINC1, ACCESS	; 0
+	movlw	D'2'			; minor version
+	movwf	POSTINC1, ACCESS
+	movlw	D'1'			; major version
+	movwf	POSTINC1, ACCESS
+	movlw	4
+	banksel	outSize
+	movwf	outSize,BANKED
+	bra	commandExecuted
+
+; first implementation: echo everything that comes in on EP1 OUT to EP1 IN
+echoBytes
+	banksel	inSize
+	movf	inSize,W,BANKED
+	movwf	outSize,BANKED
+	banksel	loop_t
+	movwf	loop_t, BANKED
+copyLoop
+	movf	POSTINC0, W, ACCESS
+	movwf	POSTINC1, ACCESS
+	decfsz	loop_t, BANKED
+	bra	copyLoop
 	return
 
 		END

@@ -726,6 +726,7 @@ usbEP1OUTreceive
 	movwf	BD2CNT, BANKED
 	movf	BD2STAT, W, BANKED
 	xorlw	( 1 << DTS )		; toggle DATA0/1
+	andlw	( 1 << DTS )		; clear PID bits
 	iorlw	( 1 << UOWN ) | ( 1 << DTSEN )
 	movwf	BD2STAT, BANKED
 	return
