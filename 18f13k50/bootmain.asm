@@ -46,14 +46,6 @@
 	extern	InitUSB
 	extern	WaitConfiguredUSB
 	extern	ServiceUSB
-	extern	enableUSBInterrupts
-	extern	sleepUsbSuspended
-	extern	USB_received
-
-;**************************************************************
-; imported variables
-; usb.asm
-	extern	LED_states
 
 ;**************************************************************
 ; local definitions
