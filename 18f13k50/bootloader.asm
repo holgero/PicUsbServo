@@ -19,11 +19,10 @@
 ; imported subroutines
 ; usb.asm
 	extern	usbEP1OUTgetByteCount
-	extern	usbEP1OUTgetBytesInit
 	extern	usbEP1OUTreceive
 	extern	usbEP1INisBusy
-	extern	usbEP1INsetBytesInit
 	extern	usbEP1INsend
+	extern	usbEP1bufferToFsr0
 ; debugled.asm
 	extern	blinkYellowLed
 	extern	blinkGreenLed
@@ -69,8 +68,7 @@ bootLoaderMain
 	call	blinkYellowLed
 ; debug code end
 
-	call	usbEP1OUTgetBytesInit	; set FSR0 to receive buffer
-	call	usbEP1INsetBytesInit	; set FSR1 to send buffer
+	call	usbEP1bufferToFsr0	; set FSR0 to EP1 in/out buffer
 
 	; special commands (0xff reset, 0x32 update leds)
 	movf	INDF0, W, ACCESS	; get command byte
@@ -121,12 +119,12 @@ dispatchFlashCommand
 	movwf	PCL, ACCESS		; bye bye
 
 readVersion
-	clrf	POSTINC1, ACCESS	; 0
-	clrf	POSTINC1, ACCESS	; 0
+	clrf	POSTINC0, ACCESS	; 0
+	clrf	POSTINC0, ACCESS	; 0
 	movlw	D'2'			; minor version
-	movwf	POSTINC1, ACCESS
+	movwf	POSTINC0, ACCESS
 	movlw	D'1'			; major version
-	movwf	POSTINC1, ACCESS
+	movwf	POSTINC0, ACCESS
 	movlw	4
 	banksel	outSize
 	movwf	outSize,BANKED
@@ -134,8 +132,6 @@ readVersion
 
 readFlash
 readConfig
-	call	echoBytes		; we send back the structure
-	call	usbEP1OUTgetBytesInit	; set FSR0 to receive buffer again
 	movf	POSTINC0, W, ACCESS	; command
 	movf	POSTINC0, W, ACCESS	; len
 	banksel	loop_t
@@ -154,29 +150,20 @@ readConfig
 copyFlashLoop
 	tblrd*+
 	movf	TABLAT, W, ACCESS
-	movwf	POSTINC1, ACCESS
+	movwf	POSTINC0, ACCESS
 	decfsz	loop_t, BANKED
 	bra	copyFlashLoop
 	return
 
-; unimplemented commands
+; unimplemented commands simply echo everything that comes in on EP1 OUT to EP1 IN
 writeFlash
 eraseFlash
 readEEdata
 writeEEdata
 writeConfig
-; first implementation: echo everything that comes in on EP1 OUT to EP1 IN
-echoBytes
 	banksel	inSize
 	movf	inSize,W,BANKED
 	movwf	outSize,BANKED
-	banksel	loop_t
-	movwf	loop_t, BANKED
-copyLoop
-	movf	POSTINC0, W, ACCESS
-	movwf	POSTINC1, ACCESS
-	decfsz	loop_t, BANKED
-	bra	copyLoop
 	return
 
 jump_table_code	CODE	0x07e0	; 8 gotos a 2 words occupy 16 words

@@ -37,10 +37,9 @@
 	global	WaitConfiguredUSB
 ; EP1 routines
 	global	usbEP1OUTgetByteCount
-	global	usbEP1OUTgetBytesInit
+	global	usbEP1bufferToFsr0
 	global	usbEP1OUTreceive
 	global	usbEP1INisBusy
-	global	usbEP1INsetBytesInit
 	global	usbEP1INsend
 ;**************************************************************
 ; exported variables
@@ -94,8 +93,10 @@ BD3STAT			EQU	( USBMEMORY + 0x0C )
 BD3CNT			EQU	( USBMEMORY + 0x0D )
 BD3ADRL			EQU	( USBMEMORY + 0x0E )
 BD3ADRH			EQU	( USBMEMORY + 0x0F )
-; Register location after last buffer descriptor register
-USB_Buffer		EQU	( USBMEMORY + 0x0080 )
+
+; Register location after last used buffer descriptor register
+USB_Buffer		EQU	( USBMEMORY + 0x0010 )
+USB_BOOT_Buffer		EQU	( USB_Buffer + 0x10 )
 
 ; BDSTAT bits
 UOWN			EQU     7
@@ -412,9 +413,9 @@ setConfiguredState
 	banksel	BD2CNT
 	movlw	0x40			; 64 bytes buffer size
 	movwf	BD2CNT, BANKED
-	movlw	low (USB_Buffer+0x10)
+	movlw	low (USB_BOOT_Buffer)
 	movwf	BD2ADRL, BANKED
-	movlw	high (USB_Buffer+0x10)
+	movlw	high (USB_BOOT_Buffer)
 	movwf	BD2ADRH, BANKED
 	; and start receiving on it
 	movlw	( 1 << DTS )
@@ -423,9 +424,9 @@ setConfiguredState
 
 	; set up endpoint EP1 IN for sending
 	banksel	BD3CNT
-	movlw	low (USB_Buffer+0x50)
+	movlw	low (USB_BOOT_Buffer)
 	movwf	BD3ADRL, BANKED
-	movlw	high (USB_Buffer+0x50)
+	movlw	high (USB_BOOT_Buffer)
 	movwf	BD3ADRH, BANKED
 	movlw	( 1 << DTS )
 	movwf	BD3STAT, BANKED		; prep DTS, so the transfer starts with DATA0
@@ -754,23 +755,12 @@ usbEP1INsend
 	return
 
 ; enables access to the received bytes via FSR0
-; changes bank, W and FSR0
-usbEP1OUTgetBytesInit
-	banksel	BD2ADRH
-	movf	BD2ADRH, W, BANKED
+; changes W and FSR0
+usbEP1bufferToFsr0
+	movlw	high(USB_BOOT_Buffer)
 	movwf	FSR0H, ACCESS
-	movf	BD2ADRL, W, BANKED
+	movlw	low(USB_BOOT_Buffer)
 	movwf	FSR0L, ACCESS
-	return
-
-; enables access to the send buffer via FSR1
-; changes bank, W and FSR1
-usbEP1INsetBytesInit
-	banksel	BD3ADRH
-	movf	BD3ADRH, W, BANKED
-	movwf	FSR1H, ACCESS
-	movf	BD3ADRL, W, BANKED
-	movwf	FSR1L, ACCESS
 	return
 
 			END
