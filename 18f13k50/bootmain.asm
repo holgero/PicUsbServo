@@ -52,12 +52,20 @@
 ; debugled.asm
 	extern	initDebugLeds
 	extern	blinkRedLed
+; eeprom.asm
+	extern	readEEbyte
+	extern	writeEEbyte
+; wait.asm
+	extern	waitSeconds
 
 ;**************************************************************
 ; local definitions
 resetvector		EQU	0x0800
 hiprio_interruptvector	EQU	0x0808
 lowprio_interruptvector	EQU	0x0818
+EE_MARK_ADDR		EQU	0x12
+EE_MARK_VALUE		EQU	0x2A
+
 ;**************************************************************
 ; local data
 bootmain_udata		UDATA
@@ -77,7 +85,7 @@ preBootMain
 	btfss	PORTB, RB7		; test jumper on RB7
 	bra	bootLoaderActive
 	bsf	INTCON2, RABPU, ACCESS
-	bra	runApplication
+	bra	bootMainCont
 interruptLo		ORG	0x0018
 	goto	lowprio_interruptvector
 
@@ -85,8 +93,31 @@ interruptLo		ORG	0x0018
 ; bootmain code
 boot_main		CODE	0x001C
 
-runApplication
-	; restore values at reset
+setEEmark
+	movlw	EE_MARK_VALUE
+	movwf	EEDATA, ACCESS
+	movlw	EE_MARK_ADDR
+	movwf	EEADR, ACCESS
+	call	writeEEbyte
+	bcf	UCON, USBEN, ACCESS	; drop from USB
+	movlw	1			; and wait a sec
+	call	waitSeconds
+	reset				; re-start
+
+clearEEmark
+	clrf	EEDATA, ACCESS
+	movlw	EE_MARK_ADDR
+	movwf	EEADR, ACCESS
+	goto	writeEEbyte
+
+bootMainCont
+	movlw	EE_MARK_ADDR
+	call	readEEbyte
+	sublw	EE_MARK_VALUE
+	bz	bootLoaderActive
+	; to run application: restore values
+	clrf	EEADR, ACCESS
+	clrf	EEDATA, ACCESS
 	movlw	0xff
 	movwf	WPUB, ACCESS
 	movwf	WPUA, ACCESS
@@ -97,6 +128,7 @@ bootLoaderActive
 	call	InitUSB			; initialize the USB module
 	call	WaitConfiguredUSB
 	call	initBootLoader
+	call	clearEEmark		; clear the EEPROM mark, so the next time the application can run again
 
 ; debug code
 	call	initDebugLeds
