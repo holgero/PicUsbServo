@@ -71,14 +71,20 @@ bootLoaderMain
 
 	call	usbEP1OUTgetBytesInit	; set FSR0 to receive buffer
 	call	usbEP1INsetBytesInit	; set FSR1 to send buffer
-	movf	INDF0, W, ACCESS	; first byte is command
-	bz	readVersion		; 0: read version
-	addlw	0xff
-	bz	readFlash		; 1: read flash
 
-	call	echoBytes		; unknown command, for now just echo 
+	; special commands (0xff reset, 0x32 update leds)
+	movf	INDF0, W, ACCESS	; get command byte
+	sublw	0xff			; check for reset command
+	bz	resetCommand
+	movf	INDF0, W, ACCESS	; get command byte
+	sublw	0x32			; update led
+	bz	updateLed
+	movf	INDF0, W, ACCESS	; get command byte
+	sublw	0x07			; range check
+	bnc	returnWithoutAnswer	; out of range command, just return
 
-commandExecuted
+	call	dispatchFlashCommand
+
 	banksel	outSize
 	movf	outSize,W,BANKED
 	call	usbEP1INsend		; send answer on EP1 IN
@@ -95,21 +101,48 @@ sendingAnswer
 	bnz	endBootLoaderMain	; not yet sent, wait until next call
 	banksel	state
 	clrf	state, BANKED		; no longer sending, prepare next receive
+
+resetCommand				; not implemented
+updateLed				; not implemented
+returnWithoutAnswer
 	call	usbEP1OUTreceive	; activate EP1 OUT again (next receive)
 
 endBootLoaderMain
 	return
 
+dispatchFlashCommand
+	movlw	upper(jumpTable)
+	movwf	PCLATU, ACCESS
+	movlw	high(jumpTable)
+	movwf	PCLATH, ACCESS
+	rlncf	INDF0, W, ACCESS	; get command byte (*2)
+	rlncf	WREG, W, ACCESS		; 4 times (goto commmands occupy 4 bytes)
+	addlw	low(jumpTable)
+	movwf	PCL, ACCESS		; bye bye
+
+readVersion
+	clrf	POSTINC1, ACCESS	; 0
+	clrf	POSTINC1, ACCESS	; 0
+	movlw	D'2'			; minor version
+	movwf	POSTINC1, ACCESS
+	movlw	D'1'			; major version
+	movwf	POSTINC1, ACCESS
+	movlw	4
+	banksel	outSize
+	movwf	outSize,BANKED
+	return
+
 readFlash
+readConfig
 	call	echoBytes		; we send back the structure
 	call	usbEP1OUTgetBytesInit	; set FSR0 to receive buffer again
-	movf	POSTINC0, W, ACCESS	; command (=1)
+	movf	POSTINC0, W, ACCESS	; command
 	movf	POSTINC0, W, ACCESS	; len
+	banksel	loop_t
+	movwf	loop_t,BANKED		; store as loop counter
 	banksel	inSize
 	addwf	inSize,W,BANKED		; add size of structure
 	movwf	outSize,BANKED		; store result size
-	banksel	loop_t
-	movwf	loop_t,BANKED		; store also as loop counter
 	; set table read pointer to address
 	movf	POSTINC0, W, ACCESS	; addressL
 	movwf	TBLPTRL, ACCESS
@@ -124,20 +157,14 @@ copyFlashLoop
 	movwf	POSTINC1, ACCESS
 	decfsz	loop_t, BANKED
 	bra	copyFlashLoop
-	bra	commandExecuted
+	return
 
-readVersion
-	clrf	POSTINC1, ACCESS	; 0
-	clrf	POSTINC1, ACCESS	; 0
-	movlw	D'2'			; minor version
-	movwf	POSTINC1, ACCESS
-	movlw	D'1'			; major version
-	movwf	POSTINC1, ACCESS
-	movlw	4
-	banksel	outSize
-	movwf	outSize,BANKED
-	bra	commandExecuted
-
+; unimplemented commands
+writeFlash
+eraseFlash
+readEEdata
+writeEEdata
+writeConfig
 ; first implementation: echo everything that comes in on EP1 OUT to EP1 IN
 echoBytes
 	banksel	inSize
@@ -152,4 +179,14 @@ copyLoop
 	bra	copyLoop
 	return
 
+jump_table_code	CODE	0x07e0	; 8 gotos a 2 words occupy 16 words
+jumpTable
+	goto	readVersion	; 0
+	goto	readFlash	; 1
+	goto	writeFlash	; 2
+	goto	eraseFlash	; 3
+	goto	readEEdata	; 4
+	goto	writeEEdata	; 5
+	goto	readConfig	; 6
+	goto	writeConfig	; 7
 		END
