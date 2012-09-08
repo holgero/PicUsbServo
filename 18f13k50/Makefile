@@ -17,10 +17,13 @@
 
 OBJECTS=usb.o bootmain.o main.o descriptor.o bootloader.o debugled.o wait.o
 
-all: bootloader.hex
+all: bootloader.hex example.hex
 
 bootloader.hex: $(OBJECTS)
 	gplink -o bootloader.hex -a inhx32 -m $(OBJECTS)
+
+example.hex: main.o
+	gplink -o example.hex -a inhx32 -m main.o
 
 %.o : %.asm
 	gpasm -c -p p18f13k50 -r dec -w 2 --define VID=0x$(VID) --define PID=0x$(PID) $<

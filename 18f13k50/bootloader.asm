@@ -44,6 +44,7 @@ outSize	RES	1
 ; local temp data
 			UDATA_OVR
 loop_t	RES	1
+loopH_t	RES	1
 
 ;**************************************************************
 ; Code section
@@ -139,14 +140,7 @@ readConfig
 	banksel	inSize
 	addwf	inSize,W,BANKED		; add size of structure
 	movwf	outSize,BANKED		; store result size
-	; set table read pointer to address
-	movf	POSTINC0, W, ACCESS	; addressL
-	movwf	TBLPTRL, ACCESS
-	movf	POSTINC0, W, ACCESS	; addressH
-	movwf	TBLPTRH, ACCESS
-	movf	POSTINC0, W, ACCESS	; addressU
-	movwf	TBLPTRU, ACCESS
-
+	call	setTablePointerFromFsr0
 copyFlashLoop
 	tblrd*+
 	movf	TABLAT, W, ACCESS
@@ -155,15 +149,103 @@ copyFlashLoop
 	bra	copyFlashLoop
 	return
 
-; unimplemented commands simply echo everything that comes in on EP1 OUT to EP1 IN
-writeFlash
 eraseFlash
+	movf	POSTINC0, W, ACCESS	; command
+	movf	POSTINC0, W, ACCESS	; len: number of 64 byte blocks to erase
+	banksel	loop_t
+	movwf	loop_t,BANKED		; store as loop counter
+	call	setTablePointerFromFsr0
+	bra	doEraseSequence
+eraseNextBlock
+	movlw	0x40			; 64 bytes per block
+	addwf	TBLPTRL, F, ACCESS
+	bnc	doEraseSequence
+	incf	TBLPTRH, F, ACCESS
+	bnc	doEraseSequence
+	incf	TBLPTRU, F, ACCESS
+doEraseSequence
+	bsf	EECON1, EEPGD, ACCESS
+	bcf	EECON1, CFGS, ACCESS
+	bsf	EECON1, WREN, ACCESS
+	bsf	EECON1, FREE, ACCESS
+	; required sequence for erasing program memory
+	movlw	0x55
+	movwf	EECON2, ACCESS
+	movlw	0xaa
+	movwf	EECON2, ACCESS
+	bsf	EECON1, WR, ACCESS
+	; required sequence end
+	decfsz	loop_t, BANKED
+	bra	eraseNextBlock
+	bcf	EECON1, WREN, ACCESS	; disable write to program memory again
+
+answerSuccess
+	movlw	0x01			; answer is just the command byte
+	banksel	outSize
+	movwf	outSize
+	return
+
+writeFlash
+	; write block size for 18f13k50 is 8 byte, for 18f14k50 it would be 16 bytes
+	movf	POSTINC0, W, ACCESS	; command
+	movf	POSTINC0, W, ACCESS	; len: number of bytes to write
+	banksel	loop_t
+	andlw	0xf8			; mask out low bits
+	movwf	loopH_t,BANKED		; count 8 byte blocks
+	rrncf	loopH_t,F,BANKED	; /2
+	rrncf	loopH_t,F,BANKED	; /4
+	rrncf	loopH_t,F,BANKED	; /8
+	call	setTablePointerFromFsr0
+	movf	TBLPTRL, W, ACCESS	; make sure the address is 8 byte aligned
+	andlw	0xf8
+	movwf	TBLPTRL, ACCESS
+	tblrd*-				; decrement by one (needed for the write loop)
+
+write8ByteBlock
+	movlw	0x08			; 8 bytes per block
+	movwf	loop_t
+
+writeToHoldingRegisters
+	movf	POSTINC0, W, ACCESS
+	movwf	TABLAT, ACCESS
+	tblwt+*				; use pre-increment, so that after the last write
+					; the pointer stays within the current block
+	decfsz	loop_t
+	bra	writeToHoldingRegisters
+
+	; setup EECON1 for writing to program memory
+	bsf	EECON1, EEPGD, ACCESS
+	bcf	EECON1, CFGS, ACCESS
+	bsf	EECON1, WREN, ACCESS
+	bcf	EECON1, FREE, ACCESS
+	; required sequence for writing program memory
+	movlw	0x55
+	movwf	EECON2, ACCESS
+	movlw	0xaa
+	movwf	EECON2, ACCESS
+	bsf	EECON1, WR, ACCESS
+	; required sequence end
+	decfsz	loopH_t
+	bra	write8ByteBlock
+	bcf	EECON1, WREN, ACCESS	; disable write to program memory again
+	bra	answerSuccess
+	
+; unimplemented commands simply echo everything that comes in on EP1 OUT to EP1 IN
 readEEdata
 writeEEdata
 writeConfig
 	banksel	inSize
 	movf	inSize,W,BANKED
 	movwf	outSize,BANKED
+	return
+
+setTablePointerFromFsr0
+	movf	POSTINC0, W, ACCESS	; addressL
+	movwf	TBLPTRL, ACCESS
+	movf	POSTINC0, W, ACCESS	; addressH
+	movwf	TBLPTRH, ACCESS
+	movf	POSTINC0, W, ACCESS	; addressU
+	movwf	TBLPTRU, ACCESS
 	return
 
 jump_table_code	CODE	0x07e0	; 8 gotos a 2 words occupy 16 words
