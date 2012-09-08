@@ -1,10 +1,19 @@
 PicUsbBootloader
 ================
 
-USB Bootloader for PICs
+An USB bootloader for PICs. The bootloader firmware is meant to be
+compatible with the bootloader that comes factory-loaded on the
+"PICDEM Full Speed USB" demo board. This allows to use it
+with the fsusb implementation from Rick Luddy
+( http://www.internetking.org/fsusb/ ).
 
-NOTE! Does not work yet, communication via USB kinda works, but no actual
-bootloader functionality has been implemented yet.
+## Implementation State
+
+The commands READ_VERSION (0x00), READ_FLASH (0x01), WRITE_FLASH (0x02)
+ERASE_FLASH (0x03), READ_CONFIG (0x06) have been implemented.
+
+READ_EEDATA (0x04), WRITE_EEDATA (0x05), WRITE_CONFIG (0x07),
+UPDATE_LED (0x32) and RESET (0xFF) are not implemented.
 
 ## Building
 
