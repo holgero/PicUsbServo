@@ -15,6 +15,23 @@ ERASE_FLASH (0x03), READ_CONFIG (0x06) have been implemented.
 READ_EEDATA (0x04), WRITE_EEDATA (0x05), WRITE_CONFIG (0x07),
 UPDATE_LED (0x32) and RESET (0xFF) are not implemented.
 
+## Usage
+
+Flash your PIC with the bootloader.hex. To change the firmware in the PIC
+pull down RB7 while connecting the PIC to the USB port. This enters
+bootloader mode and the firmware can be changed with fsusb (see
+http://www.internetking.org/fsusb/ ). You will need to adapt fsusb to
+search for the right VID/PID (fsusb_vendorID, fsusb_productID in fsusb.c).
+
+(I plan to write my own bootloader host program in java to replace fsusb,
+but this is a statement about the future, of course. :-))
+
+The bootloader occupies the first page of the PIC (0x0000 - 0x0800). The
+interrupt vectors are remapped to 0x0800, 0x0808 and 0x0818.
+See the example subdirectory for a linker script you can use with your
+application. It contains also vectors.asm with a declaration of the
+remapped interrupt vectors.
+
 ## Building
 
 To build: Run make in the top level directory like this:
@@ -34,8 +51,8 @@ There is a CI build of the firmware at travis-ci: http://travis-ci.org/holgero/P
 
 ## Directories
 
-18f13k50	Bootloader for the PIC 18f13k50 (maybe works on the complete
-		PIC family 18f1xk50, maybe not)
+18f13k50	Bootloader for the PIC 18f13k50 (works only on 18f13k50,
+		the 18f14k50 has a different block write size).
 
 ## License
 

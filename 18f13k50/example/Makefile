@@ -15,24 +15,17 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-OBJECTS=usb.o bootmain.o descriptor.o bootloader.o debugled.o wait.o
+OBJECTS=main.o vectors.o
 
-all: bootloader.hex example
+all: example.hex
 
-example:
-	make -C example all
-
-bootloader.hex: $(OBJECTS)
-	gplink -o bootloader.hex -a inhx32 -m $(OBJECTS)
+example.hex: $(OBJECTS)
+	gplink -o example.hex -a inhx32 -m $(OBJECTS) -s 18f13k50_bootloader.lkr
 
 %.o : %.asm
-	gpasm -c -p p18f13k50 -r dec -w 2 --define VID=0x$(VID) --define PID=0x$(PID) $<
-
-usb.o: descriptor.inc
-descriptor.o: descriptor.inc
+	gpasm -c -p p18f13k50 -r dec -w 2 $<
 
 clean:
 	rm -f *.o *.map *.lst *.cod *.hex
-	make -C example clean
 
-.PHONY: all example clean
+.PHONY: all clean

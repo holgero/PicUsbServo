@@ -1,5 +1,5 @@
 ; USB bootloader for PICs
-; main routine
+; example main routine
 ; Copyright (C) 2012 Holger Oehm
 ;
 ; Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,10 +17,8 @@
 #include <p18f13k50.inc>
 
 ;**************************************************************
-; imported subroutines
-
-;**************************************************************
-; imported variables
+; exported subroutines
+	global	main
 
 ;**************************************************************
 ; local definitions
@@ -35,17 +33,8 @@ counterH		RES	1
 blinkenLights		RES	1
 
 ;**************************************************************
-; vectors
-resetvector		ORG	0x0800
-	goto	main
-hiprio_interruptvector	ORG	0x0808
-	goto	$
-lowprio_interruptvector	ORG	0x0818
-	goto	$
-
-;**************************************************************
 ; main code
-main_code		CODE	0x0820
+main_code		CODE
 
 main
 	clrf	LATB, ACCESS
@@ -67,9 +56,9 @@ waitTimerLoop
 	goto	waitTimerLoop
 	incf	blinkenLights,F,BANKED
 	btfsc	blinkenLights,1,BANKED	; changes every time: blinking period is 5.2s
-	bsf	LATB, 5, ACCESS		; yellow off
+	bsf	LATB, 6, ACCESS		; green off
 	btfss	blinkenLights,1,BANKED	; changes every time: blinking period is 5.2s
-	bcf	LATB, 5, ACCESS		; yellow on
+	bcf	LATB, 6, ACCESS		; green on
 	goto	waitTimerLoop
 
 setupTimer0
