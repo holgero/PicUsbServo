@@ -15,7 +15,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-OBJECTS=usb.o bootmain.o descriptor.o bootloader.o debugled.o wait.o eeprom.o
+OBJECTS=usb.o bootmain.o descriptor.o bootloader.o debugled.o wait.o eeprom.o dummy.o
 
 all: bootloader.hex example
 
