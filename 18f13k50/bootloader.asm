@@ -14,7 +14,7 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 
-#include <p18f2550.inc>
+#include <p18f13k50.inc>
 ;**************************************************************
 ; imported subroutines
 ; usb.asm
