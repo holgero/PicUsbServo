@@ -1,5 +1,5 @@
 # USB bootloader for PICs
-# Top level Makefile, runs make in subdirectories.
+# Makefile for the PIC 18f2550, creates bootloader.hex
 #
 # Copyright (C) 2012 Holger Oehm
 #
@@ -15,20 +15,24 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-all: checkVIDPID 18f13k50 18f2550
+OBJECTS=usb.o bootmain.o descriptor.o bootloader.o debugled.o wait.o eeprom.o dummy.o
 
-checkVIDPID:
-	@test "$(VID)" || ( echo "ERROR: missing VID"; exit 1 )
-	@test "$(PID)" || ( echo "ERROR: missing PID"; exit 1 )
-	@echo "Building with VID:PID=$(VID):$(PID)"
+all: bootloader.hex example
 
-18f13k50:
-	$(MAKE) -C 18f13k50 clean all
+example:
+	make -C example all
 
-18f2550:
-	$(MAKE) -C 18f2550 clean all
+bootloader.hex: $(OBJECTS)
+	gplink -o bootloader.hex -a inhx32 -m $(OBJECTS)
+
+%.o : %.asm
+	gpasm -c -p p18f2550 -r dec -w 2 --define VID=0x$(VID) --define PID=0x$(PID) $<
+
+usb.o: descriptor.inc
+descriptor.o: descriptor.inc
 
 clean:
-	$(MAKE) -C 18f13k50 clean
+	rm -f *.o *.map *.lst *.cod *.hex
+	make -C example clean
 
-.PHONY: all clean checkVIDPID 18f13k50 18f2550
+.PHONY: all example clean
