@@ -49,6 +49,9 @@ public class PicMemory {
     }
 
     public void setBytes(final int address, final byte[] bytes) {
+        if (!needStore(bytes)) {
+            return;
+        }
         final int chunkAddress = chunkAddress(address);
         final Chunk chunk;
         if (chunkMemory.containsKey(chunkAddress)) {
@@ -61,6 +64,15 @@ public class PicMemory {
         if (wrote < bytes.length) {
             setBytes(address + wrote, Arrays.copyOfRange(bytes, wrote, bytes.length));
         }
+    }
+
+    private boolean needStore(final byte[] bytes) {
+        for (final byte b : bytes) {
+            if ((b & 0xff) != 0xff) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private int chunkAddress(final int address) {

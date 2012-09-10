@@ -112,4 +112,10 @@ public class PicMemoryTest {
     public void testGetBytes() throws Exception {
         assertThat(memory.getBytes(0x00, 2), is(new byte[] { (byte) 0xff, (byte) 0xff }));
     }
+
+    @Test
+    public void testWriteFF() throws Exception {
+        memory.setBytes(0x00, 0xff);
+        assertThat(memory.getChunkAddresses(), is(empty()));
+    }
 }
