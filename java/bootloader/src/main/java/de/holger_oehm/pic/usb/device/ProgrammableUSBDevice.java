@@ -58,6 +58,7 @@ public class ProgrammableUSBDevice implements SimpleUSBDevice {
     private static final byte EP1IN = (byte) 0x81;
     private static final byte REQUEST_VERSION = 0;
     private static final byte READ_FLASH = 1;
+    private static final byte READ_CONFIG = 6;
 
     public String readVersion() {
         sendVersionRequest();
@@ -70,6 +71,15 @@ public class ProgrammableUSBDevice implements SimpleUSBDevice {
             throw new IllegalArgumentException("maximum len is 59: " + len);
         }
         sendRequest(new byte[] { READ_FLASH, (byte) len, (byte) address, (byte) (address >> 8), (byte) (address >> 16), });
+        final byte[] answer = receiveAnswer();
+        return Arrays.copyOfRange(answer, 5, answer.length);
+    }
+
+    public byte[] readConfig(final int address, final int len) {
+        if (len > 59) {
+            throw new IllegalArgumentException("maximum len is 59: " + len);
+        }
+        sendRequest(new byte[] { READ_CONFIG, (byte) len, (byte) address, (byte) (address >> 8), (byte) (address >> 16), });
         final byte[] answer = receiveAnswer();
         return Arrays.copyOfRange(answer, 5, answer.length);
     }
