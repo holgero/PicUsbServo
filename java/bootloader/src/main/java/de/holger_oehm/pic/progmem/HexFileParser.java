@@ -1,5 +1,7 @@
 package de.holger_oehm.pic.progmem;
 
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.Reader;
@@ -59,5 +61,11 @@ public class HexFileParser {
 
     public List<String> getWarnings() {
         return warnings;
+    }
+
+    public PicMemory parse(final File file) throws IOException {
+        try (final Reader reader = new FileReader(file)) {
+            return parse(reader);
+        }
     }
 }

@@ -7,7 +7,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 public class PicMemory {
-    private static final int CHUNK_SIZE = 0x40;
+    public static final int CHUNK_SIZE = 0x40;
     private static final int CHUNK_MASK = ~(CHUNK_SIZE - 1);
 
     private static class Chunk {
@@ -82,6 +82,14 @@ public class PicMemory {
     public List<Integer> getChunkAddresses() {
         final List<Integer> result = new ArrayList<>();
         result.addAll(chunkMemory.keySet());
+        return result;
+    }
+
+    public byte[] getBytes(final int address, final int length) {
+        final byte[] result = new byte[length];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = (byte) getByte(address + i);
+        }
         return result;
     }
 

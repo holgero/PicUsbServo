@@ -100,12 +100,16 @@ public class PicMemoryTest {
         final byte[] testData = new byte[0x80];
         Arrays.fill(testData, (byte) 0x7f);
         memory.setBytes(0x1234, testData);
-        System.out.println(memory.getChunkAddresses());
         assertThat(memory.getChunkAddresses(), contains(0x1200, 0x1240, 0x1280));
         // check boundaries of set memory region: 0x1234 - 0x12b3
         assertThat(memory.getByte(0x1233), is(0xff));
         assertThat(memory.getByte(0x1234), is(0x7f));
         assertThat(memory.getByte(0x12b3), is(0x7f));
         assertThat(memory.getByte(0x12b4), is(0xff));
+    }
+
+    @Test
+    public void testGetBytes() throws Exception {
+        assertThat(memory.getBytes(0x00, 2), is(new byte[] { (byte) 0xff, (byte) 0xff }));
     }
 }
