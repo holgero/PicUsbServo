@@ -33,9 +33,9 @@ public class HexFileWriter implements Closeable {
                 final StringBuilder value = new StringBuilder();
                 int checksum = 0;
                 int length = 0;
-                for (int idx = 0; idx < MAX_LINE_LEN; idx++) {
-                    if (memory.getByte(address + idx) != 0xff) {
-                        length = idx + 1;
+                for (int idx = 0; idx < MAX_LINE_LEN - 1; idx += 2) {
+                    if (memory.getByte(address + idx) != 0xff || memory.getByte(address + idx + 1) != 0xff) {
+                        length = idx + 2;
                     }
                 }
                 for (int idx = 0; idx < length; idx++) {

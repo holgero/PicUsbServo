@@ -20,19 +20,19 @@ public class HexFileWriterTest {
     @Test
     public void testZeroByteAt0() throws Exception {
         memory.setBytes(0x0000, 0x00);
-        assertThat(writeToHex(), is(":020000040000fa\n:0100000000ff\n:00000001ff\n"));
+        assertThat(writeToHex(), is(":020000040000fa\n:0200000000ffff\n:00000001ff\n"));
     }
 
     @Test
     public void testZeroByteAt64() throws Exception {
         memory.setBytes(0x0040, 0x00);
-        assertThat(writeToHex(), is(":020000040000fa\n:0100400000bf\n:00000001ff\n"));
+        assertThat(writeToHex(), is(":020000040000fa\n:0200400000ffbf\n:00000001ff\n"));
     }
 
     @Test
     public void testOneByte() throws Exception {
         memory.setBytes(0x0000, 0x01);
-        assertThat(writeToHex(), is(":020000040000fa\n:0100000001fe\n:00000001ff\n"));
+        assertThat(writeToHex(), is(":020000040000fa\n:0200000001fffe\n:00000001ff\n"));
     }
 
     @Test
@@ -52,7 +52,7 @@ public class HexFileWriterTest {
     public void testSeventeenBytes() throws Exception {
         final byte[] testData = new byte[17];
         memory.setBytes(0x0000, testData);
-        assertThat(writeToHex(), is(":020000040000fa\n" + ":1000000000000000000000000000000000000000f0\n" + ":0100100000ef\n"
+        assertThat(writeToHex(), is(":020000040000fa\n" + ":1000000000000000000000000000000000000000f0\n" + ":0200100000ffef\n"
                 + ":00000001ff\n"));
     }
 
@@ -60,7 +60,7 @@ public class HexFileWriterTest {
     public void testLineWithFFByte() throws Exception {
         final byte[] testData = new byte[] { 0x01, (byte) 0xff, 0x02 };
         memory.setBytes(0x0000, testData);
-        assertThat(writeToHex(), is(":020000040000fa\n:0300000001ff02fb\n:00000001ff\n"));
+        assertThat(writeToHex(), is(":020000040000fa\n:0400000001ff02fffb\n:00000001ff\n"));
     }
 
     @Test
@@ -68,7 +68,7 @@ public class HexFileWriterTest {
         final byte[] testData = new byte[] { 0x01, (byte) 0xff, 0x02 };
         memory.setBytes(0x0040, testData);
         memory.setBytes(0x0125, testData);
-        assertThat(writeToHex(), is(":020000040000fa\n:0300400001ff02bb\n:08012000ffffffffff01ff02da\n:00000001ff\n"));
+        assertThat(writeToHex(), is(":020000040000fa\n:0400400001ff02ffbb\n:08012000ffffffffff01ff02da\n:00000001ff\n"));
     }
 
     @Test
