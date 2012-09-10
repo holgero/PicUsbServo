@@ -15,7 +15,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-all: checkVIDPID 18f13k50 18f2550
+all: checkVIDPID 18f13k50 18f2550 java
 
 checkVIDPID:
 	@test "$(VID)" || ( echo "ERROR: missing VID"; exit 1 )
@@ -28,7 +28,10 @@ checkVIDPID:
 18f2550:
 	$(MAKE) -C 18f2550 clean all
 
+java:
+	( cd java; mvn clean install )
+
 clean:
 	$(MAKE) -C 18f13k50 clean
 
-.PHONY: all clean checkVIDPID 18f13k50 18f2550
+.PHONY: all clean checkVIDPID 18f13k50 18f2550 java

@@ -4,3 +4,7 @@
 *.lst
 *.map
 *~
+.project
+.classpath
+.settings/
+target/

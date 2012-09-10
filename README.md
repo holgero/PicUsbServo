@@ -54,6 +54,12 @@ There is a CI build of the firmware at travis-ci: http://travis-ci.org/holgero/P
 18f13k50	Bootloader for the PIC 18f13k50 (works only on 18f13k50,
 		the 18f14k50 has a different block write size).
 
+18f2550		Bootloader for the PIC 18f2550 (might work on other
+		PICs of the 18fx[45]5x family, but I did not try that).
+
+java		The start of an implementation of a java bootloader for the
+		host part. Does not work yet. (Only compiles and runs tests.)
+
 ## License
 
    Licensed under the Apache License, Version 2.0 (the "License");
