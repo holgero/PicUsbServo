@@ -27,8 +27,24 @@ import org.apache.commons.io.IOUtils;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
+import com.sun.jna.ptr.IntByReference;
 
 public interface Usblib extends Library {
+    public static final int LIBUSB_SUCCESS = 0;
+    public static final int LIBUSB_ERROR_IO = -1;
+    public static final int LIBUSB_ERROR_INVALID_PARAM = -2;
+    public static final int LIBUSB_ERROR_ACCESS = -3;
+    public static final int LIBUSB_ERROR_NO_DEVICE = -4;
+    public static final int LIBUSB_ERROR_NOT_FOUND = -5;
+    public static final int LIBUSB_ERROR_BUSY = -6;
+    public static final int LIBUSB_ERROR_TIMEOUT = -7;
+    public static final int LIBUSB_ERROR_OVERFLOW = -8;
+    public static final int LIBUSB_ERROR_PIPE = -9;
+    public static final int LIBUSB_ERROR_INTERRUPTED = -10;
+    public static final int LIBUSB_ERROR_NO_MEM = -11;
+    public static final int LIBUSB_ERROR_NOT_SUPPORTED = -12;
+    public static final int LIBUSB_ERROR_OTHER = -99;
+
     static final int PATH_MAX = 4096;
 
     static class NativeLoader {
@@ -80,4 +96,6 @@ public interface Usblib extends Library {
 
     int libusb_control_transfer(Pointer handle, byte bmRequestType, byte bRequest, short wValue, short wIndex, byte[] data,
             short wLength, int timeout);
+
+    int libusb_bulk_transfer(Pointer handle, byte endpoint, byte[] data, int length, IntByReference transferred, int timeout);
 }
