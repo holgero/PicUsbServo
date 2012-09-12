@@ -13,7 +13,7 @@ public class PicMemoryModel {
         private final int start;
         private final int end;
 
-        private Range(final int start, final int end) {
+        Range(final int start, final int end) {
             this.start = start;
             this.end = end;
         }
@@ -24,6 +24,10 @@ public class PicMemoryModel {
 
         public int getEnd() {
             return end;
+        }
+
+        public boolean contains(final int address) {
+            return start <= address && address <= end;
         }
     }
 

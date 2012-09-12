@@ -58,10 +58,12 @@ public class ProgrammableUSBDevice implements SimpleUSBDevice {
     private static final byte EP1IN = (byte) 0x81;
     private static final byte REQUEST_VERSION = 0;
     private static final byte READ_FLASH = 1;
+    private static final byte WRITE_FLASH = 2;
+    private static final byte ERASE_FLASH = 3;
     private static final byte READ_CONFIG = 6;
 
     public String readVersion() {
-        sendVersionRequest();
+        sendNoArgCommand(REQUEST_VERSION, 0, 0);
         final byte[] answer = receiveAnswer();
         return String.format("%d.%d", answer[3], answer[2]);
     }
@@ -70,25 +72,60 @@ public class ProgrammableUSBDevice implements SimpleUSBDevice {
         if (len > 59) {
             throw new IllegalArgumentException("maximum len is 59: " + len);
         }
-        sendRequest(new byte[] { READ_FLASH, (byte) len, (byte) address, (byte) (address >> 8), (byte) (address >> 16), });
+        sendNoArgCommand(READ_FLASH, len, address);
         final byte[] answer = receiveAnswer();
         return Arrays.copyOfRange(answer, 5, answer.length);
+    }
+
+    public void writeCodeFlash(final int address, final byte[] bytes) {
+        if (bytes.length != 64) {
+            throw new IllegalArgumentException("Need exactly 64 bytes for a write, but got: " + bytes.length);
+        }
+        if ((address & 0x3f) != 0) {
+            throw new IllegalArgumentException("Address to write must be aligned to 64 byte boundary: "
+                    + String.format("%04x", address));
+        }
+        sendNoArgCommand(ERASE_FLASH, 1, address);
+        final byte[] answer = receiveAnswer();
+        if (!Arrays.equals(answer, new byte[] { ERASE_FLASH })) {
+            throw new USBDeviceException("Unexpected answer for erase_flash command: " + Arrays.toString(answer));
+        }
+        for (int i = 0; i < 4; i++) {
+            writeCodeBlock(address, bytes, 16 * i);
+        }
+    }
+
+    private void writeCodeBlock(final int address, final byte[] bytes, final int blockOffset) {
+        final int blockAddress = address + blockOffset;
+        final byte[] data = new byte[21];
+        data[0] = WRITE_FLASH;
+        data[1] = 16;
+        data[2] = (byte) blockAddress;
+        data[3] = (byte) (blockAddress >> 8);
+        data[4] = (byte) (blockAddress >> 16);
+        System.arraycopy(bytes, blockOffset, data, 5, 16);
+        //        System.out.println(Arrays.toString(data));
+        send(data);
+        final byte[] answer = receiveAnswer();
+        if (!Arrays.equals(answer, new byte[] { WRITE_FLASH })) {
+            throw new USBDeviceException("Unexpected answer for write_flash command: " + Arrays.toString(answer));
+        }
     }
 
     public byte[] readConfig(final int address, final int len) {
         if (len > 59) {
             throw new IllegalArgumentException("maximum len is 59: " + len);
         }
-        sendRequest(new byte[] { READ_CONFIG, (byte) len, (byte) address, (byte) (address >> 8), (byte) (address >> 16), });
+        sendNoArgCommand(READ_CONFIG, len, address);
         final byte[] answer = receiveAnswer();
         return Arrays.copyOfRange(answer, 5, answer.length);
     }
 
-    private void sendVersionRequest() {
-        sendRequest(new byte[] { REQUEST_VERSION, 0x00, 0x00, 0x00, 0x00, });
+    private void sendNoArgCommand(final byte command, final int len, final int address) {
+        send(new byte[] { command, (byte) len, (byte) address, (byte) (address >> 8), (byte) (address >> 16), });
     }
 
-    private void sendRequest(final byte[] data) {
+    private void send(final byte[] data) {
         final IntByReference transferred = new IntByReference();
         final int status = Usblib.INSTANCE.libusb_bulk_transfer(handle, EP1OUT, data, data.length, transferred, 1000);
         if (status != Usblib.LIBUSB_SUCCESS) {
@@ -120,5 +157,4 @@ public class ProgrammableUSBDevice implements SimpleUSBDevice {
         Usblib.INSTANCE.libusb_control_transfer(handle, requesttype, HID_SET_REPORT, wValue, reportNumber, report,
                 (short) report.length, 100);
     }
-
 }
