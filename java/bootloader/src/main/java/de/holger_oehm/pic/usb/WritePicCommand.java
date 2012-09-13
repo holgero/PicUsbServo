@@ -27,7 +27,7 @@ public class WritePicCommand extends PicCommand {
                 }
             }
         }
-        return 0;
+        return new VerifyPicCommand(getFile(), getUsbAddress(), getModel()).run();
     }
 
 }
