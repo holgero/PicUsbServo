@@ -23,8 +23,11 @@ public class CommandDispatcher {
         result.addOption("p", "program", true, "program and verify the given hex file");
         result.addOption("y", "verify", true, "verify the memory content against the given hex file");
         result.addOption("r", "read", true, "write the memory content to the given hex file");
-        result.addOption("d", "device", true,
-                "use the given vvvv:pppp vendor id and product id to search for the programable device");
+        result.addOption(
+                "d",
+                "device",
+                true,
+                "use the given vvvv:pppp vendor id and product id to search for the programable device (specify both vid and pid in hexadecimal, without a leading '0x')");
         return result;
     }
 
@@ -49,6 +52,7 @@ public class CommandDispatcher {
     }
 
     public int run() throws IOException {
+        USBAddress usbAddress = XFD_ADDRESS;
         if (parsedArguments.hasOption('h')) {
             printHelp("");
             return 0;
@@ -57,16 +61,32 @@ public class CommandDispatcher {
             printVersion();
             return 0;
         }
+        if (parsedArguments.hasOption('d')) {
+            final String[] vidPid = parsedArguments.getOptionValue('d').split(":");
+            if (vidPid.length != 2) {
+                printHelp("Wrong format for USB address " + parsedArguments.getOptionValue('d') + ", expected VID:PID");
+                return 1;
+            }
+            try {
+                final int vid = Integer.parseInt(vidPid[0], 16);
+                final int pid = Integer.parseInt(vidPid[1], 16);
+                usbAddress = new USBAddress(vid, pid);
+            } catch (final NumberFormatException e) {
+                printHelp("Wrong format for USB address " + parsedArguments.getOptionValue('d') + ", "
+                        + e.getClass().getSimpleName() + ": " + e.getMessage());
+                return 1;
+            }
+        }
         final PicCommand command;
         if (parsedArguments.hasOption('r')) {
             final String fileName = parsedArguments.getOptionValue('r');
-            command = new ReadPicCommand(new File(fileName), XFD_ADDRESS, PicMemoryModel.PIC18F13K50);
+            command = new ReadPicCommand(new File(fileName), usbAddress, PicMemoryModel.PIC18F13K50);
         } else if (parsedArguments.hasOption('p')) {
             final String fileName = parsedArguments.getOptionValue('p');
-            command = new WritePicCommand(new File(fileName), XFD_ADDRESS, PicMemoryModel.PIC18F13K50);
+            command = new WritePicCommand(new File(fileName), usbAddress, PicMemoryModel.PIC18F13K50);
         } else if (parsedArguments.hasOption('y')) {
             final String fileName = parsedArguments.getOptionValue('y');
-            command = new VerifyPicCommand(new File(fileName), XFD_ADDRESS, PicMemoryModel.PIC18F13K50);
+            command = new VerifyPicCommand(new File(fileName), usbAddress, PicMemoryModel.PIC18F13K50);
         } else {
             printHelp("No command given.");
             return 1;
