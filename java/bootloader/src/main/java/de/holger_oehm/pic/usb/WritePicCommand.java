@@ -11,24 +11,18 @@ import de.holger_oehm.pic.usb.device.USBAddress;
 
 public class WritePicCommand extends PicCommand {
 
-    private final File file;
-    private final USBAddress usbAddress;
-    private final PicMemoryModel model;
-
     public WritePicCommand(final File file, final USBAddress usbAddress, final PicMemoryModel model) {
-        this.file = file;
-        this.usbAddress = usbAddress;
-        this.model = model;
+        super(file, usbAddress, model);
     }
 
     @Override
     int run() throws IOException {
-        try (final ProgrammableUSBDevice usbDevice = new ProgrammableUSBDevice(usbAddress)) {
-            System.out.println("Found device at " + usbAddress + " with bootloader version " + usbDevice.readVersion());
+        try (final ProgrammableUSBDevice usbDevice = new ProgrammableUSBDevice(getUsbAddress())) {
+            System.out.println("Found device at " + getUsbAddress() + " with bootloader version " + usbDevice.readVersion());
             final HexFileParser parser = new HexFileParser();
-            final PicMemory memory = parser.parse(file);
+            final PicMemory memory = parser.parse(getFile());
             for (final int address : memory.getChunkAddresses()) {
-                if (model.getCode().contains(address)) {
+                if (getModel().getCode().contains(address)) {
                     usbDevice.writeCodeFlash(address, memory.getBytes(address, PicMemory.CHUNK_SIZE));
                 }
             }

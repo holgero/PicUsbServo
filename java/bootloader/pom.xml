@@ -81,7 +81,7 @@
 					</descriptorRefs>
 					<archive>
 						<manifest>
-							<mainClass>de.holger_oehm.pic.usb.TODO</mainClass>
+							<mainClass>de.holger_oehm.pic.usb.Bootloader</mainClass>
 						</manifest>
 					</archive>
 				</configuration>

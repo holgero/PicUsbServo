@@ -64,6 +64,9 @@ public class CommandDispatcher {
         } else if (parsedArguments.hasOption('p')) {
             final String fileName = parsedArguments.getOptionValue('p');
             command = new WritePicCommand(new File(fileName), XFD_ADDRESS, PicMemoryModel.PIC18F13K50);
+        } else if (parsedArguments.hasOption('y')) {
+            final String fileName = parsedArguments.getOptionValue('y');
+            command = new VerifyPicCommand(new File(fileName), XFD_ADDRESS, PicMemoryModel.PIC18F13K50);
         } else {
             printHelp("No command given.");
             return 1;
