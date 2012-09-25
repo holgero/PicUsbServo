@@ -23,8 +23,11 @@ bootloader mode and the firmware can be changed with fsusb (see
 http://www.internetking.org/fsusb/ ). You will need to adapt fsusb to
 search for the right VID/PID (fsusb_vendorID, fsusb_productID in fsusb.c).
 
-(I plan to write my own bootloader host program in java to replace fsusb,
-but this is a statement about the future, of course. :-))
+I wrote my own bootloader host program in java that replaces fsusb.
+To use that one, locate the jar file named
+bootloader-\*-jar-with-dependencies.jar in the directory
+java/bootloader/target. Start it with "java -jar bootloader-\*.jar --help"
+for available commands/options.
 
 The bootloader occupies the first page of the PIC (0x0000 - 0x0800). The
 interrupt vectors are remapped to 0x0800, 0x0808 and 0x0818.
@@ -57,8 +60,10 @@ There is a CI build of the firmware at travis-ci: http://travis-ci.org/holgero/P
 18f2550		Bootloader for the PIC 18f2550 (might work on other
 		PICs of the 18fx[45]5x family, but I did not try that).
 
-java		The start of an implementation of a java bootloader for the
-		host part. Does not work yet. (Only compiles and runs tests.)
+java		An implementation of a java bootloader for the host part.
+		Has currently the same limitations as fsusb (it cannot
+		read/write EEPROM) and does not read id locations and
+		devid from the device. It writes only program memory.
 
 ## License
 
