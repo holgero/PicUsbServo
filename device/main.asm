@@ -20,6 +20,7 @@
 
 ;**************************************************************
 ; configuration
+	config CPUDIV	= NOCLKDIV	;    No CPU System Clock divide
 	config USBDIV	= ON
 	config FOSC	= HS
 	config PLLEN	= ON
@@ -57,6 +58,10 @@
 	extern	ServiceUSB
 	extern	enableUSBInterrupts
 	extern	sleepUsbSuspended
+; servo.asm
+	extern	initServo
+	extern	sendServoImpulse
+	extern	setServo
 ; wait.asm
 	extern	waitMilliSeconds
 	extern	USB_received
@@ -68,24 +73,15 @@
 
 ;**************************************************************
 ; local definitions
-#define TIMER0H_VAL	0xFE
-#define TIMER0L_VAL	0x20
-
-; uncomment if the pins drive the led directly (assuming the
-; LEDs are connected to the positive voltage)
-; #define INVERTED_IO	1
-IFDEF INVERTED_IO
-#define	ALL_LEDS_OFF	b'01110000'	; inverted led bits
-ELSE
-#define	ALL_LEDS_OFF	b'00000000'	; zero led bits
-ENDIF
+; system clock at 48 MHz Sytem -> CPU at 12 MHz
+; preload value = 0xFFFF - (12000000 / prescaler / 50)
+;		= 0xFFFF - 0x03AA = 0xFC55
+#define TIMER0H_VAL	0xFC
+#define TIMER0L_VAL	0x55
 
 ;**************************************************************
 ; local data
 main_udata		UDATA
-noSignFromHostL		RES	1
-noSignFromHostH		RES	1
-blinkenLights		RES	1
 ; low prio interrupt has to save registers for itself
 STATUS_temp_LP		RES	1
 BSR_temp_LP		RES	1
@@ -172,14 +168,9 @@ main
 	movlw	3			; wait a bit: 3 ms
 	call	waitMilliSeconds
 
-	clrf	LATB, ACCESS
-	movlw	b'10001111'		; LEDs on Port B, RB<4:6>
-	movwf	TRISB, ACCESS
-
+	call	initServo
 	call	setupTimer0
-
 	call	InitUSB			; initialize the USB module
-
 	call	WaitConfiguredUSB
 
 	; set up interrupt configuration
@@ -199,15 +190,6 @@ main
 	bsf	INTCON, GIEH		; enable high prio interrupt vector
 	bsf	INTCON, GIEL		; enable low prio interrupt vector
 	
-	banksel	noSignFromHostL
-	clrf	noSignFromHostL, BANKED
-	clrf	noSignFromHostH, BANKED
-	clrf	blinkenLights, BANKED
-
-	; switch all leds off
-	movlw	ALL_LEDS_OFF
-	movwf	LATB,ACCESS
-
 mainLoop
 	banksel	USB_received
 	bcf	USB_received,0,BANKED
@@ -217,63 +199,16 @@ waitTimerLoop
 
 	call	setupTimer0
 
-	; start by switching off all LEDs
-	movlw	ALL_LEDS_OFF
-	movwf	LATB,ACCESS
 	; sleep as long as we are in suspend mode
 	call	sleepUsbSuspended
 
 	banksel	USB_received
 	btfsc	USB_received,0,BANKED
-	goto	ledsChangedByHost
+	goto	commandFromHost
+	call	sendServoImpulse
+	goto	mainLoop
 
-	; nothing new from the host
-	; first divider: 10ms * 256 = 2.5s
-	banksel	noSignFromHostL
-	incfsz	noSignFromHostL, BANKED
-	goto	setLeds
-
-	btfss	blinkenLights,7,BANKED	; already blinking?
-	goto	notYetBlinking		; no not yet
-	incf	blinkenLights,F,BANKED
-	btfsc	blinkenLights,1,BANKED	; changes every time: blinking period is 5.2s
-	goto	yellowOn
-	; set led state to all off
-	banksel	USB_data
-	clrf	USB_data, BANKED
-	clrf	USB_data+1, BANKED
-	clrf	USB_data+2, BANKED
-	movwf	LATB,ACCESS
-	goto	setLeds
-
-notYetBlinking
-	incf	noSignFromHostH,F,BANKED
-	btfss	noSignFromHostH,5,BANKED; 32*256*10ms ~= 82 seconds nothing from the host
-	goto	setLeds			; not yet long enough
-yellowOn
-	clrf	blinkenLights,BANKED	; reset blink counter
-	bsf	blinkenLights,7,BANKED
-	banksel	USB_data
-	bsf	USB_data+1, 0, BANKED
-	goto	setLeds
-
-	; set leds according to led state. Use bits 4:6
-setled	macro	index
-	btfss	USB_data + index, 0, BANKED
-	IFDEF INVERTED_IO
-		bsf	LATB, index + 4, ACCESS	; bit 0 cleared, set port bit
-	ELSE
-		bcf	LATB, index + 4, ACCESS	; bit 0 cleared, clear port bit
-	ENDIF
-	btfsc	USB_data + index, 0, BANKED
-	IFDEF INVERTED_IO
-		bcf	LATB, index + 4, ACCESS	; bit 0 set, clear port bit
-	ELSE
-		bsf	LATB, index + 4, ACCESS	; bit 0 set, set port bit
-	ENDIF
-	endm
-
-ledsChangedByHost
+commandFromHost
 	banksel	USB_data
 	movf	USB_data + 7, W, BANKED
 	sublw	0x42			; command to start bootloader
@@ -281,18 +216,15 @@ ledsChangedByHost
 	goto	0x001c			; run bootloader, triggers a reset and never comes back
 
 noBootCommand
-	banksel	noSignFromHostL
-	clrf	noSignFromHostL, BANKED
-	clrf	noSignFromHostH, BANKED
-	clrf	blinkenLights, BANKED
+	movf	USB_data + 7, W, BANKED
+	sublw	0x01			; command to set servo
+	bnz	setServoCommand
+	goto	mainLoop
 
-setLeds
-	banksel	USB_data
-	setled	0	; red
-	setled	1	; yellow
-	setled	2	; green
-
-	goto mainLoop
+setServoCommand
+	movf	USB_data, W, BANKED
+	call	setServo
+	goto	mainLoop
 
 setupTimer0
 	bcf	INTCON, T0IF, ACCESS	; clear Timer0 interrupt flag

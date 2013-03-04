@@ -1,0 +1,23 @@
+Servos:
+http://www.sprut.de/electronic/pic/projekte/servoinverter/index.htm
+http://www.sprut.de/electronic/modell/allgemein/index.htm#3
+
+50 times per second send an impulse of width 1 ms to 2 ms. Servo position corresponds impulse width.
+
+
+Algorithm:
+50 Hz -> 20 ms time.
+
+init servo position to 128
+init usb with interrupts
+
+Loop:
+	set servo-pin to high
+	wait 1 ms
+	wait (servo position/256)*1 ms
+	set servo-pin to low
+	wait (1 - servo position/256)*1 ms
+	wait 18 ms
+	servo command on usb?
+	yes: copy new servo position
+endloop

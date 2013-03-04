@@ -58,8 +58,8 @@ length_tmp		RES	1
 ;**************************************************************
 ; local definitions
 NUM_CONFIGURATIONS	EQU	2
-VID			EQU	0x1d50
-PID			EQU	0x6039
+VID			EQU	0x04D8
+PID			EQU	0xF79B
 
 ;**************************************************************
 ; code section
@@ -217,14 +217,14 @@ db	'h', 0x00
 db	'm', 0x00
 String2
 db	StringEE-String2, STRING	; bLength, bDescriptorType
-db	'X', 0x00			; bString
-db	'F', 0x00
-db	'D', 0x00
+db	'S', 0x00			; bString
 db	'e', 0x00
+db	'r', 0x00
 db	'v', 0x00
-db	'i', 0x00
-db	'c', 0x00
-db	'e', 0x00
+db	'o', 0x00
+db	'C', 0x00
+db	't', 0x00
+db	'l', 0x00
 StringEE				; special string to enable ms extensions
 db	Descriptor_end-StringEE, STRING	; bLength, bDescriptorType=STRING
 db	'M', 0x00

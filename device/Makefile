@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-OBJECTS=descriptor.o wait.o main.o
+OBJECTS=descriptor.o wait.o servo.o main.o
 
 %.o : %.asm
 	gpasm -c -p p18f13k50 -r dec -w 2 -I ../firmware/18f13k50 $<
