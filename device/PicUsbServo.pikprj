@@ -19,7 +19,7 @@ inputFiles=main.asm,wait.asm,descriptor.asm
 
 [General]
 description=
-output=XFD.hex
+output=PicUsbServo.hex
 type=asm
 version=0.1
 
@@ -27,5 +27,5 @@ version=0.1
 debug=false
 hex-format=inhx32
 map=true
-objs-libs-dir=/home/holger/Programming/GitRoot/XFD/firmware/18f13k50
-other-options=usb.o -s /home/holger/Programming/GitRoot/XFD/device/18f13k50_bootloader.lkr
+objs-libs-dir=/home/holger/Programming/GitRoot/PicUsbServo/firmware/18f13k50
+other-options=usb.o -s /home/holger/Programming/GitRoot/PicUsbServo/device/18f13k50_bootloader.lkr

@@ -4,9 +4,3 @@
 *.map
 *.o
 *~
-host/usbleds
-target/
-.classpath
-.project
-.settings/
-/java/usbleds/src/main/resources/

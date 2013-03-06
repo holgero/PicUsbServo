@@ -1,8 +1,8 @@
-# eXtreme Feedback Device
-# USB connected device which switches some LEDs on and off
-# Makefile, creates XFD.hex file from sources
+# Pic Usb Servo
+# USB connected device which controls a servo
+# Makefile, creates PicUsbServo.hex file from sources
 #
-# Copyright (C) 2012 Holger Oehm
+# Copyright (C) 2013 Holger Oehm
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -21,15 +21,11 @@ OBJECTS=descriptor.o wait.o main.o
 %.o : %.asm
 	gpasm -c -p p18f13k50 -r dec -w 2 -I ../firmware/18f13k50 $<
 
-all: XFD.hex XFD_noBL.hex
+all: PicUsbServo.hex
 
-XFD.hex: $(OBJECTS)
-	gplink -o XFD.hex -a inhx32 -m -I ../firmware/18f13k50 usb.o $(OBJECTS) -s 18f13k50_bootloader.lkr
-	@test -f XFD.hex || ( echo gplink failed; exit 1 )
-
-XFD_noBL.hex: $(OBJECTS) vectors_nobootloader.o
-	gplink -o XFD_noBL.hex -a inhx32 -m -I ../firmware/18f13k50 usb.o $(OBJECTS) vectors_nobootloader.o
-	@test -f XFD.hex || ( echo gplink failed; exit 1 )
+PicUsbServo.hex: $(OBJECTS)
+	gplink -o PicUsbServo.hex -a inhx32 -m -I ../firmware/18f13k50 usb.o $(OBJECTS) -s 18f13k50_bootloader.lkr
+	@test -f PicUsbServo.hex || ( echo gplink failed; exit 1 )
 
 clean:
 	rm -f *.o *.map *.lst *.cod *.hex

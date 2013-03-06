@@ -1,25 +1,15 @@
-h1. eXtreme Fedback Device
+h1. Pic USB Servo Controller
 
-The aim is to bring the feedback from the continous integration build
-faster to the developer.
-For this a microcontroller (PIC18Fxx5x) controls some indicators (typically 
-three LEDs mimicing a traffic light). The host runs a java program that
-polls the CI build server and tells the microcontroller via usb which
-LED(s) to light.
+Control a servo (Mystery S0009) by a PIC18F13K50 via USB.
 
-The device has its own official USB address (0x1d50:0x6039), thanks
-to Openmoko Inc. (see
-http://wiki.openmoko.org/wiki/USB_Product_IDs#USB_Vendor_and_Product_IDs ).
-
-The USB firmware is now extracted in the spin-off project
-https://github.com/holgero/PicUsbFirmware . It is used as a git submodule
-in this project.
+The USB firmware (https://github.com/holgero/PicUsbFirmware) is used as a
+git submodule in this project.
 
 h2. Project Setup
 
 Clone the sources and initialize the submodule:
-$ git clone git://github.com/holgero/XFD.git
-$ cd XFD
+$ git clone git://github.com/holgero/PicUsbServo.git
+$ cd PicUsbServo
 $ git submodule init
 $ git submodule update
 
@@ -31,38 +21,20 @@ $ make
 Needs to compile: make, gcc++, javac, maven, gputils
 Needs at runtime: java, libusb-1.0 (on Linux), WinUSB driver (on Windows)
 
-You will find the firmware under device/XFD.hex, flash your PIC with it.
-
-The program for your host will be a jar file under buildmonitor/target
-named buildmonitor-*-jar-with-dependencies.jar. Start it with a command
-line like this:
-
-$ java -jar buildmonitor-*-jar-with-dependencies.jar http://jenkins.my.domain:8080/view/BuildViewToWatch
-
-Note: On Windows (before Windows 8) you need to install the WinUSB driver
-for generic USB devices once before you can use it. You can use Zadig
-(https://github.com/pbatard/libwdi/wiki/Zadig) for that purpose.
-
+You will find the firmware under device/PicUsbServo.hex, flash
+your PIC with it. (See https://github.com/holgero/PicUsbBootloader).
 
 h2. Contents
 
 Directories:
 firmware		git submodule contains the USB firmware
 device			main routine and USB descriptor for this device
-host			C++ executable and some demo scripts, mainly used
-			to test the hardware and firmware (Linux only)
-java/usbleds		usb leds java driver (tested on Linux and Windows 7)
-java/buildmonitor	main program with the build monitor
-hardware		device hardware
+java/servo		java host program (tested on Linux)
 
 See also the file CREDITS.
 
 Branches:
 master:		main branch, uses PIC18F13K50
-18f2550:	a secondary branch, based on PIC18F2550, mostly for reference
-		and for sentimental reasons (I started in this branch).
-hid		a different approach to access the device on windows:
-		it is declared as a HID and accessed with the HID.DLL
 
 h2. Binaries Download and CI Build
 
@@ -72,7 +44,7 @@ You can download the latest snapshot build results from there.
 
 h2. License
 
-    Copyright (C) 2012  Holger Oehm
+    Copyright (C) 2013  Holger Oehm
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

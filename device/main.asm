@@ -1,8 +1,8 @@
-; eXtreme Feedback Device
-; USB connected device which switches some LEDs on and off
+; Pic Usb Servo
+; USB connected device which controls a servo
 ; main routine and configuration
 ;
-; Copyright (C) 2012 Holger Oehm
+; Copyright (C) 2013 Holger Oehm
 ; This program is free software: you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
 ; the Free Software Foundation, either version 3 of the License, or
