@@ -1,6 +1,10 @@
+*.o
 *.cod
 *.hex
 *.lst
 *.map
-*.o
 *~
+.project
+.classpath
+.settings/
+target/
