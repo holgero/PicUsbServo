@@ -48,7 +48,7 @@ initServo
 sendServoImpulse
 	movlw	b'01000000'
 	movwf	LATB, ACCESS
-	movlw	0x02		; wait.asm is based on 6 MHZ CPU clock, we have 12 MHz
+	movlw	0x01
 	call	waitMilliSeconds
 	banksel	position
 	movf	position, W
@@ -68,12 +68,11 @@ setServo
 	movwf	position, BANKED
 	return
 
-; to wait for a 256th part of a ms at 12 MHz -> 47 instructions
 wait256thMs				;	2	-	2
 	banksel	waitLoopCntH		;	1	-	3
 	movwf	waitLoopCntH, BANKED	;	1	-	4
 outerLoop
-	movlw	D'14'			;	1	-	5
+	movlw	D'28'			;	1	-	5
 	movwf	waitLoopCntL, BANKED	;	1	-	6
 innerLoop
 	decfsz	waitLoopCntL, BANKED	;	1	13	19,47

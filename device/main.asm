@@ -218,10 +218,7 @@ commandFromHost
 noBootCommand
 	movf	USB_data + 7, W, BANKED
 	sublw	0x01			; command to set servo
-	bnz	setServoCommand
-	goto	mainLoop
-
-setServoCommand
+	bnz	mainLoop		; ignore everything else
 	movf	USB_data, W, BANKED
 	call	setServo
 	goto	mainLoop
