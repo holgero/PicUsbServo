@@ -35,8 +35,8 @@ public class CommandDispatcher {
         final Options result = new Options();
         result.addOption("h", "help", false, "write this help text");
         result.addOption("v", "version", false, "print version of the bootloader and exit");
-        result.addOption("r", "readservo", false, "read the servo position");
-        result.addOption("s", "setservo", true, "set the servo position (0-255)");
+        result.addOption("r", "readservo", false, "read the servo positions");
+        result.addOption("s", "setservo", true, "set the servo positions s1,s2,s3,s4,s5 (0-255)");
         result.addOption("f", "flash", false, "prepare the device for firmware upload");
         result.addOption(
                 "d",
@@ -93,8 +93,8 @@ public class CommandDispatcher {
         }
         final PicCommand command;
         if (parsedArguments.hasOption('s')) {
-            final byte value = toInternalByte(parsedArguments.getOptionValue('s'));
-            command = new SetServoCommand(usbAddress, value);
+            final byte[] values = parseByteValues(parsedArguments.getOptionValue('s'));
+            command = new SetServoCommand(usbAddress, values);
         } else if (parsedArguments.hasOption('r')) {
             command = new GetServoCommand(usbAddress);
         } else if (parsedArguments.hasOption('f')) {
@@ -110,12 +110,21 @@ public class CommandDispatcher {
         return 0;
     }
 
-    private byte toInternalByte(final String optionValue) {
-        final int value = Integer.parseInt(optionValue);
-        if ((value < 0) || (value > 255)) {
-            throw new IllegalArgumentException("Value not in range (0-255): " + value);
+    private byte[] parseByteValues(final String optionValues) {
+        final String[] values = optionValues.split(",", 5);
+        final byte[] result = new byte[values.length];
+        for (int i = 0; i < values.length; i++) {
+            result[i] = toByte(values[i], optionValues);
         }
-        return (byte) value;
+        return result;
+    }
+
+    private byte toByte(final String value, final String optionValues) {
+        final int intValue = Integer.parseInt(value);
+        if ((intValue < 0) || (intValue > 255)) {
+            throw new IllegalArgumentException("Value not in range (0-255): " + intValue + " in values '" + optionValues + "'");
+        }
+        return (byte) intValue;
     }
 
 }

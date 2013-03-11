@@ -66,12 +66,6 @@ public class ServoUSBDevice implements SimpleUSBDevice {
         setReport((short) 0, reportData);
     }
 
-    public void setServo(final byte value) {
-        reportData[0] = value;
-        reportData[7] = 0x01;
-        setReport((short) 0, reportData);
-    }
-
     public byte getServo() {
         getReport((short) 0, reportData);
         return reportData[0];
@@ -81,5 +75,11 @@ public class ServoUSBDevice implements SimpleUSBDevice {
         final byte requesttype = USB_ENDPOINT_IN | USB_TYPE_CLASS | USB_RECIP_INTERFACE;
         Usblib.INSTANCE.libusb_control_transfer(handle, requesttype, HID_GET_REPORT, (short) 0, reportNumber, report,
                 (short) report.length, 1000);
+    }
+
+    public void setServos(final byte[] values) {
+        System.arraycopy(values, 0, reportData, 0, 5);
+        reportData[7] = 0x01;
+        setReport((short) 0, reportData);
     }
 }

@@ -24,18 +24,21 @@ import de.holger_oehm.pic.usb.device.USBAddress;
 
 public class SetServoCommand extends PicCommand {
 
-    private final byte value;
+    private final byte[] values;
 
-    public SetServoCommand(final USBAddress usbAddress, final byte value) {
+    public SetServoCommand(final USBAddress usbAddress, final byte[] values) {
         super(usbAddress);
-        this.value = value;
+        if (values.length != 5) {
+            throw new IllegalArgumentException("set servo command needs exactly 5 values");
+        }
+        this.values = values;
     }
 
     @Override
     int run() throws IOException {
         try (final ServoUSBDevice usbDevice = new ServoUSBDevice(getUsbAddress())) {
             System.out.println("Found device at " + getUsbAddress());
-            usbDevice.setServo(value);
+            usbDevice.setServos(values);
         }
         return 0;
     }
