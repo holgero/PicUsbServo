@@ -18,8 +18,14 @@
 
 #include <p18f2550.inc>
 ;**************************************************************
+; hardware: uses pins RC3:RC7 as output for servos
+; pulses should occur at about 50 Hz and have a length of
+; 1 ms to 2 ms corresponding to minimum and maximum amplitude
+
+;**************************************************************
 ; imported subroutines
 	extern	waitMilliSeconds
+
 ; exported subroutines
 	global	initServo
 	global	sendServoImpulse
@@ -40,14 +46,14 @@ initServo
 	banksel	position
 	movlw	0x80
 	movwf	position, BANKED
-	clrf	LATB, ACCESS
-	movlw	b'10111111'	; set RB6 to output
-	movwf	TRISB, ACCESS
+	clrf	LATC, ACCESS
+	movlw	b'00000111'	; set RC3:7 to output
+	movwf	TRISC, ACCESS
 	return
 
 sendServoImpulse
-	movlw	b'01000000'
-	movwf	LATB, ACCESS
+	movlw	b'00001000'
+	movwf	LATC, ACCESS
 	movlw	0x01
 	call	waitMilliSeconds
 	banksel	position
@@ -56,7 +62,7 @@ sendServoImpulse
 	call	wait256thMs
 zeroPos
 	movlw	b'00000000'
-	movwf	LATB, ACCESS
+	movwf	LATC, ACCESS
 	banksel	position
 	movf	position, W
 	sublw	0x00
