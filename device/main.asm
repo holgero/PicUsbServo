@@ -61,7 +61,7 @@
 ; servo.asm
 	extern	initServo
 	extern	sendServoImpulse
-	extern	setServo
+	extern	setServoAddress
 ; wait.asm
 	extern	waitMilliSeconds
 	extern	USB_received
@@ -219,8 +219,17 @@ noBootCommand
 	movf	USB_data + 7, W, BANKED
 	sublw	0x01			; command to set servo
 	bnz	mainLoop		; ignore everything else
-	movf	USB_data, W, BANKED
-	call	setServo
+	call	setServoAddress
+	movf	USB_data+0, W, BANKED
+	movwf	POSTINC0, ACCESS
+	movf	USB_data+1, W, BANKED
+	movwf	POSTINC0, ACCESS
+	movf	USB_data+2, W, BANKED
+	movwf	POSTINC0, ACCESS
+	movf	USB_data+3, W, BANKED
+	movwf	POSTINC0, ACCESS
+	movf	USB_data+4, W, BANKED
+	movwf	POSTINC0, ACCESS
 	goto	mainLoop
 
 setupTimer0

@@ -21,3 +21,28 @@ Loop:
 	servo command on usb?
 	yes: copy new servo position
 endloop
+
+
+Change of plan: use all available pins for servos? (Or only five pins?)
+Have pins RB4:7, RC0:7 = 12 pins.
+Need 5 pins, take RC3:7
+
+Algorithm:
+
+Loop 1-5:
+    copy servoN position to loopCounterN
+    set servoN to high
+endloop	
+
+wait 1 ms
+
+Loop 1-256:
+    Loop 1-5:
+	loopCounterN == 0 -> set servoN to low
+	else loopCounterN--
+    endloop	
+    wait (1/256 * 1ms)
+endloop	
+
+wait 18 ms
+

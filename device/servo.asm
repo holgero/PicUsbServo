@@ -23,11 +23,11 @@
 ; exported subroutines
 	global	initServo
 	global	sendServoImpulse
-	global	setServo
+	global	setServoAddress
 
 ; local definitions
 servo_udata		UDATA
-position		RES	1
+position		RES	5
 			UDATA_OVR
 waitLoopCntH		RES 1
 waitLoopCntL		RES 1
@@ -63,9 +63,11 @@ zeroPos
 	call	wait256thMs
 	return
 
-setServo
-	banksel	position
-	movwf	position, BANKED
+setServoAddress
+	movlw	low(position)
+	movwf	FSR0L, ACCESS
+	movlw	high(position)
+	movwf	FSR0H, ACCESS
 	return
 
 wait256thMs				;	2	-	2
