@@ -66,9 +66,11 @@ public class ServoUSBDevice implements SimpleUSBDevice {
         setReport((short) 0, reportData);
     }
 
-    public byte getServo() {
+    public byte[] getServos() {
         getReport((short) 0, reportData);
-        return reportData[0];
+        final byte[] result = new byte[5];
+        System.arraycopy(reportData, 0, result, 0, 5);
+        return result;
     }
 
     private void getReport(final short reportNumber, final byte[] report) {

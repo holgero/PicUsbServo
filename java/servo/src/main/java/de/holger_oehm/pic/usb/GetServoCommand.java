@@ -18,6 +18,7 @@
 package de.holger_oehm.pic.usb;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import de.holger_oehm.pic.usb.device.ServoUSBDevice;
 import de.holger_oehm.pic.usb.device.USBAddress;
@@ -31,7 +32,7 @@ public class GetServoCommand extends PicCommand {
     @Override
     int run() throws IOException {
         try (final ServoUSBDevice usbDevice = new ServoUSBDevice(getUsbAddress())) {
-            System.out.println("Servo position: " + usbDevice.getServo());
+            System.out.println("Servo positions: " + Arrays.toString(usbDevice.getServos()));
         }
         return 0;
     }
